@@ -4,7 +4,7 @@
 
 ## Purpose
 
-A framework for building custom AWS CloudFormation resources. A simple flow for generating Lambda handlers in node.js. Adding IAM roles and uploading function code body is the responsibilty of the developer. The scope of this module is to structure the way developers author simple Lambda resources into simple functional definitions of Create, Update, Delete, Validate (cfn Properties), and NoUpdate (noop detection on Update).
+A simple flow for generating Lambda handlers in node.js. Adding IAM roles and uploading function code body is the responsibilty of the developer. The scope of this module is to structure the way developers author simple Lambda resources into simple functional definitions of Create, Update, Delete, Validate (cfn Properties), and NoUpdate (noop detection on Update).
 
 ## Full Example
 
