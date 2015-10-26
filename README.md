@@ -44,7 +44,7 @@ function Create(CfnRequestParams, reply) {
     return reply(err);
   }
   // Will pass the create.
-  // *** physicalResourceId is REQUIRED String and cannot be empty! ***
+  // physicalResourceId defaults to the request's `[StackId, LogicalResourceId, RequestId].join('/')`.
   // FnGetAttrsDataObj is optional.
   reply(null, physicalResourceId, FnGetAttrsDataObj);
 }
@@ -52,10 +52,10 @@ function Create(CfnRequestParams, reply) {
 #### `Update` Method Handler
 
 Called when CloudFormation issues an `'UPDATE'` command.  
-Accepts the `CfnRequestParams` Properties object, the `OldCfnRequestParams` Properties object, and the `reply` callback.
+Accepts the `RequestPhysicalId` `String`, `CfnRequestParams` Properties object, the `OldCfnRequestParams` Properties object, and the `reply` callback.
 
 ```
-function Update(CfnRequestParams, OldCfnRequestParams, reply) {
+function Update(RequestPhysicalID, CfnRequestParams, OldCfnRequestParams, reply) {
   // code...
   if (err) {
     // Will fail the update.
@@ -72,10 +72,10 @@ function Update(CfnRequestParams, OldCfnRequestParams, reply) {
 #### `Delete` Method Handler
 
 Called when CloudFormation issues a `'DELETE'` command.  
-Accepts the `CfnRequestParams` Properties object, and the `reply` callback.
+Accepts the `RequestPhysicalId` `String`, `CfnRequestParams` Properties object, and the `reply` callback.
 
 ```
-function Delete(CfnRequestParams, reply) {
+function Delete(RequestPhysicalID, CfnRequestParams, reply) {
   // code...
   if (err) {
     // Will fail the delete (or rollback).
