@@ -1,0 +1,18 @@
+{
+  "name": "cfn-lambda",
+  "version": "0.1.1",
+  "dependencies": {
+    "jayschema": {
+      "version": "0.3.1",
+      "from": "jayschema@0.3.1",
+      "resolved": "https://registry.npmjs.org/jayschema/-/jayschema-0.3.1.tgz",
+      "dependencies": {
+        "when": {
+          "version": "3.4.6",
+          "from": "when@>=3.4.6 <3.5.0",
+          "resolved": "https://registry.npmjs.org/when/-/when-3.4.6.tgz"
+        }
+      }
+    }
+  }
+}
