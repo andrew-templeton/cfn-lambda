@@ -1,4 +1,10 @@
 
+var path = require('path');
+
+var ValidationCheck = require(path.resolve(__dirname,
+  'src', 'validationCheck'));
+
+CfnLambdaFactory.ValidationCheck = ValidationCheck;
 module.exports = CfnLambdaFactory;
 
 function CfnLambdaFactory(resourceDefinition) {
@@ -15,8 +21,7 @@ function CfnLambdaFactory(resourceDefinition) {
 
     console.log('REQUEST RECEIVED:\n', JSON.stringify(event));
     
-    var invalidation = 'function' == typeof resourceDefinition.Validate &&
-      resourceDefinition.Validate(Params);
+    var invalidation = ValidationCheck(Params, resourceDefinition.Validate);
     if (invalidation && event.RequestType !== 'Delete') {
       return reply(invalidation);
     } 
@@ -60,7 +65,7 @@ function CfnLambdaFactory(resourceDefinition) {
         StackId: event.StackId,
         RequestId: event.RequestId,
         LogicalResourceId: event.LogicalResourceId,
-        Data: optionalData
+        Data: optionalData || OldParams
       });
     }
 
@@ -81,10 +86,14 @@ function CfnLambdaFactory(resourceDefinition) {
         rejectUnauthorized: parsedUrl.hostname !== 'localhost',
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': '',
           'Content-Length': responseBody.length
         }
       };
+
+      if (parsedUrl.hostname === 'localhost') {
+        options.rejectUnauthorized = false;
+      }
 
       var request = https.request(options, function(response) {
         console.log('STATUS: ' + response.statusCode);

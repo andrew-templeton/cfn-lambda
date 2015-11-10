@@ -18,7 +18,7 @@ describe('Severe CloudFormation Errors', function() {
       return {
         RequestType: 'Create',
         // Broke port intentionally!
-        ResponseURL: 'https://localhost' + expectedUrl,
+        ResponseURL: 'https://localhost-just-kidding' + expectedUrl,
         StackId: expectedStackId,
         RequestId: expectedRequestId,
         ResourceType: 'Custom::TestResource',
