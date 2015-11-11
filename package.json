@@ -19,7 +19,7 @@
     "custom",
     "resource"
   ],
-  "author": "Andrew Templeton",
+  "author": "Andrew Templeton <andrw.tmplton@gmail.com> (https://github.com/andrew-templeton)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/andrew-templeton/cfn-lambda/issues"
