@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "required": [
+    "name"
+  ],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "cloneFrom": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

@@ -21,7 +21,11 @@ function CfnLambdaFactory(resourceDefinition) {
 
     console.log('REQUEST RECEIVED:\n', JSON.stringify(event));
     
-    var invalidation = ValidationCheck(Params, resourceDefinition.Validate);
+    var invalidation = ValidationCheck(Params, {
+      Validate: resourceDefinition.Validate,
+      Schema: resourceDefinition.Schema,
+      SchemaPath: resourceDefinition.SchemaPath
+    });
     if (invalidation && event.RequestType !== 'Delete') {
       return reply(invalidation);
     } 

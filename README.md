@@ -4,11 +4,15 @@
 
 ## Purpose
 
-A simple flow for generating Lambda handlers in node.js. Adding IAM roles and uploading function code body is the responsibilty of the developer. The scope of this module is to structure the way developers author simple Lambda resources into simple functional definitions of Create, Update, Delete, Validate (cfn Properties), and NoUpdate (noop detection on Update).
+A simple flow for generating Lambda handlers in node.js. Adding IAM roles and uploading function code body is the responsibilty of the developer. The scope of this module is to structure the way developers author simple Lambda resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and `NoUpdate` (noop detection on `Update`).
 
-## Full Example
 
-See `example` subdirectory for a custom resource that applies bucket notifications to S3 buckets that need publishing of events directly to an SQS queue.
+
+## Examples
+
+ - [Custom::ApiGatewayRestApi](https://gitub.com/andrew-templeton/cfn-api-gateway-restapi)
+ - [Custom::ApiGatewayDeployment](https://gitub.com/andrew-templeton/cfn-api-gateway-deployment)
+ - [Custom::ApiGatewayStage](https://gitub.com/andrew-templeton/cfn-api-gateway-stage)
 
 ## Usage
 
@@ -18,15 +22,23 @@ This is a contrived example call to fully demonstrate the way to interface with 
 ```
 var CfnLambda = require('cfn-lambda');
 
-// All properties required except for NoUpdate handler.
-// Scroll below to see how each handler is defined.
 
 exports.handler = CfnLambda({
-  Create: Create,
-  Update: Update,
-  Delete: Delete,
-  Validate: Validate,
-  NoUpdate: NoUpdate
+
+  Create: Create, // Required function
+  Update: Update, // Required function
+  Delete: Delete, // Required function
+
+  // Any of following to validate resource Properties
+  // If you do not include any, the Lambda assumes any Properties are valid.
+  // If you define more than one, the system uses all of them in this order.
+  Validate: Validate,     // Function
+  Schema: Schema,         // JSONSchema v4 Object
+  SchemaPath: SchemaPath, // Array path to JSONSchema v4 JSON file
+  // end list
+
+  NoUpdate: NoUpdate // Optional
+
 });
 ```
 
@@ -91,13 +103,25 @@ function Delete(RequestPhysicalID, CfnRequestParams, reply) {
 }
 ```
 
-#### `Validate` Method Handler
+### Validating Properties
 
 Used before `'CREATE'`, `'UPDATE'`, or `'DELETE'` method handlers. The CloudFormation request will automatically fail if any truthy values are returned, and any `String` values returned are displayed to the template developer, to assist with resource `Properties` object correction.
 
-*Important:* To prevent `ROLLBACK` lockage, the `'DELETE'` will be short circuited if this check fails. If this check fails, CloudFormation will be told that everything went fine, but no actual further actions will occur. This is because CloudFormation will immediately issue a `'DELETE'` after a failure in a `'CREATE'` or an `'UPDATE'`. Since these failures themselves will have resulted from a `Validate` method failure if the subsequent `'DELETE'` fails, this is safe.
+*Important:* To prevent `ROLLBACK` lockage, the `'DELETE'` will be short circuited if this check fails. If this check fails, CloudFormation will be told that everything went fine, but no actual further actions will occur. This is because CloudFormation will immediately issue a `'DELETE'` after a failure in a `'CREATE'` or an `'UPDATE'`. Since these failures themselves will have resulted from a validation method failure if the subsequent `'DELETE'` fails, this is safe.
+
+May be a:
+ - Custom validation function as `Validate` callback
+ - JSONSchema v4 `Schema`
+ - JSONSchema v4 file path as `SchemaPath`
+
+#### `Validate` Method Handler
+
+The truthy `String` return value will cause a `'FAILURE'`, and the `String` value is used as the CloudFormation `'REASON'`.
 
 ```
+// Example using a custom function
+// CfnRequestParams are all resource `Properties`,
+//   except for the required system `ServiceToken`.
 function Validate(CfnRequestParams) {
   // code...
   if (unmetParamCondition) {
@@ -110,6 +134,44 @@ function Validate(CfnRequestParams) {
   // DO NOT return truthy if the request params are valid.
 }
 ```
+
+#### `Schema` Object - JSONSchema Version 4
+
+Using a JSONSchema `Schema` property value will automatically generate the `String` invalidation return values for you when validating against the parameters - simply provide the template and the validation and error messging is taken care of for you.
+
+If you choose to use a JSONSchema template, the service will also use the JSONSchema metaschema to ensure the provided JSONSchema is a valid schema itself.
+
+```
+// Example using a custom JSONSchema Version 4 template
+// This might be in a file you manually load like `schema.json`, or a JS object.
+var Schema = {
+  type: 'object',
+  required: [
+    'foo'
+  ],
+  properties: {
+    foo: {
+      type: 'string'
+    },
+    selectable: {
+      type: 'string',
+      enum: ['list', 'of', 'valid', 'values']
+    }
+  },
+  additionalProperties: false
+};
+```
+
+#### `SchemaPath` Array - Path to JSONSchema Version 4 File
+
+A convenient way to get the benefits of `Schema` object validation, but keeping your code clean and segregated nicely.
+
+The path is defined as an Array so that we can use the `path` module.
+
+```
+var SchemaPath = [__dirname, 'src', 'mytemplate.json'];
+```
+
 
 #### `NoUpdate` Method Handler
   
