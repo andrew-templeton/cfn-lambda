@@ -4,8 +4,9 @@
 
 ## Purpose
 
-A simple flow for generating Lambda handlers in node.js. Adding IAM roles and uploading function code body is the responsibilty of the developer. The scope of this module is to structure the way developers author simple Lambda resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and `NoUpdate` (noop detection on `Update`).
+A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and `NoUpdate` (noop detection on `Update`). Also provides convenience `Environment` values.
 
+Adding IAM roles and uploading function code body is the responsibilty of the developer.
 
 
 ## Examples
@@ -41,6 +42,27 @@ exports.handler = CfnLambda({
 
 });
 ```
+
+#### `Environment` Convenience Property
+
+Provides convenience `Environment` values.: 
+
+    var CfnLambda = require('cfn-lambda');
+    // After receiving `event` and `context`...
+    console.log(CfnLambda.Environment);
+    /*
+    {
+      `LambdaArn`: 'foo bar',      // Full ARN for the current Lambda
+      `Region`: 'us-east-1',       // Region in which current Lambda resides
+      `AccountId`: '012345678910', // The account associated with the Lambda
+      `LambdaName`: 'LambdaName'   // Name for the current Lambda
+    }
+    */
+
+
+Only works after the generated `CfnLambda` function has been called by Lambda.
+
+
 
 #### `Create` Method Handler
 

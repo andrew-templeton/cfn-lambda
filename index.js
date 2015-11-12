@@ -11,6 +11,8 @@ function CfnLambdaFactory(resourceDefinition) {
 
   return function CfnLambda(event, context) {
 
+    CfnLambdaFactory.Environment = getEnvironment(context);
+
     var RequestType = event.RequestType;
     var Params = event.ResourceProperties;
     var OldParams = event.OldResourceProperties;
@@ -77,11 +79,11 @@ function CfnLambdaFactory(resourceDefinition) {
 
       var responseBody = JSON.stringify(response);
       
-      console.log('RESPONSE BODY:\n', responseBody);
+      console.log('RESPONSE: %j', response);
 
       var https = require('https');
       var url = require('url');
-      console.log('REPLYING TO: ', event.ResponseURL);
+      console.log('REPLYING TO: %s', event.ResponseURL);
       var parsedUrl = url.parse(event.ResponseURL);
       var options = {
         hostname: parsedUrl.hostname,
@@ -100,8 +102,8 @@ function CfnLambdaFactory(resourceDefinition) {
       }
 
       var request = https.request(options, function(response) {
-        console.log('STATUS: ' + response.statusCode);
-        console.log('HEADERS: ' + JSON.stringify(response.headers));
+        console.log('STATUS: %s',response.statusCode);
+        console.log('HEADERS: %j', response.headers);
         response.on('data', function() {
           // noop
         });
@@ -129,3 +131,12 @@ function objectPerfectEqualityByJSON(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+function getEnvironment(context) {
+  var parsedArn = context.invokedFunctionArn.match(/^arn:aws:lambda:(\w+-\w+-\d+):(\d+):function:(.*)$/);
+  return {
+    LambdaArn: parsedArn[0],
+    Region: parsedArn[1],
+    AccountId: parsedArn[2],
+    LambdaName: parsedArn[3]
+  };
+}

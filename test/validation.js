@@ -99,8 +99,6 @@ describe('Validation', function() {
         SchemaPath: nonArray
       });
 
-      console.log(invalidation);
-
       assert(invalidation === badSchemaPathErrorMessage);
       done();
     });
@@ -114,8 +112,6 @@ describe('Validation', function() {
       var invalidation = ValidationCheck('anything', {
         SchemaPath: arrayWithNonString
       });
-
-      console.log(invalidation);
 
       assert(invalidation === badSchemaPathErrorMessage);
       done();
@@ -326,6 +322,7 @@ describe('Validation', function() {
       });
 
       assert(invalidation === badCloneFromError);
+
       done();
 
     });
