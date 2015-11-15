@@ -6,14 +6,38 @@
 
 A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and `NoUpdate` (noop detection on `Update`). Also provides convenience `Environment` values.
 
-Adding IAM roles and uploading function code body is the responsibilty of the developer.
-
 
 ## Examples
 
  - [Custom::ApiGatewayRestApi](https://gitub.com/andrew-templeton/cfn-api-gateway-restapi)
  - [Custom::ApiGatewayDeployment](https://gitub.com/andrew-templeton/cfn-api-gateway-deployment)
  - [Custom::ApiGatewayStage](https://gitub.com/andrew-templeton/cfn-api-gateway-stage)
+
+## Deployment of Lambdas
+
+Any custom resource using this tool as a dependency can run this deploy script from the root of the custom resource project to deploy Lambdas to all regions. Add this line to the `"scripts"` section of your `package.json` inside your repository using this module as a direct dependency:
+
+    "cfn-deploy": "chmod +x ./node_modules/cfn-lambda/deploy.sh && ./node_modules/cfn-lambda/deploy.sh;"
+
+You must also set up:
+
+1. Add `<reporoot>/execution-policy.json` to define the abilities the Lambda should have.
+2. Have AWS credentials configured in your environment, via one of:
+  + `$AWS_PROFILE` in your environment
+  + a credentials file
+  + `$AWS_ACCESS_KEY_ID` and `$AWS_SECRET_ACCESS_KEY` in your environment.
+
+
+You then run this from within the repository directly depending on `cfn-lambda`:
+
+    $ npm run cfn-lambda-deploy
+
+
+It should look like this: 
+
+
+![Insta-Deploy](./ex-deploy-term.png)
+
 
 ## Usage
 
