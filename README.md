@@ -262,6 +262,12 @@ var MyAliasActionName = CfnLambda.SDKAlias({ // Like Create, Update, Delete
   mapKeys: {
     KeyNameInCfn: 'KeyNameForSDK'
   },
+  forceBools: [ // CloudFormation doesn't allow Lambdas to recieve true booleans.
+    'PathToCfnPropertyParam',     // This will coerce the parameter at this path.
+    'Also.Supports.Wildcards.*',
+    'But',
+    'only.at.path.end'
+  ],
   keys: [ // Defaults to including ALL keys from CloudFormation, minus ServiceToken
     'KeysFrom',
     'CloudFormationProperties',

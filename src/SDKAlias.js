@@ -60,6 +60,9 @@ function attrsFrom(options, data) {
 
 function usableParams(params, options, physicalId) {
   var paramObject = params || {};
+  if (Array.isArray(options.forceBools) && options.forceBools.every(isString)) {
+    forceBoolean(paramObject, options.forceBools);
+  }
   var withPhysicalId = isString(options.physicalIdAs)
     ? addAliasedPhysicalId(paramObject, options.physicalIdAs, physicalId)
     : paramObject;
@@ -113,6 +116,36 @@ function accessFunction(key) {
       ? undefined
       : data[key];
   };
+}
+
+function forceBoolean(params, pathSet) {
+  var translations = {
+    '0': false,
+    'false': false,
+    '': false,
+    'null': false,
+    'undefined': false,
+    '1': true,
+    'true': true
+  };
+  pathSet.forEach(function(path) {
+    var pathTokens = path.split('.');
+    var lastToken = pathTokens.pop();
+    var intermediate = pathTokens.reduce(function(obj, key) {
+      return obj == null 
+        ? undefined
+        : obj[key];
+    }, params);
+    if (intermediate) {
+      if (lastToken === '*') {
+        Object.keys(intermediate).forEach(function(key) {
+          intermediate[key] = translations[intermediate[key]];
+        });
+      } else if (intermediate[lastToken] !== undefined) {
+        intermediate[lastToken] = translations[intermediate[lastToken]];
+      }
+    }
+  });
 }
 
 function mapKeys(params, keyMap) {

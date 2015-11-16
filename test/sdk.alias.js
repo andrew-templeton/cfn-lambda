@@ -52,7 +52,6 @@ describe('SDKAlias', function() {
       });
 
       Alias(providedPhyscialId, {}, noop);
-
     });
 
     it('should include only passed keyset', function(done) {
@@ -74,7 +73,6 @@ describe('SDKAlias', function() {
         Has: 'many',
         Passed: 'key'
       }, noop);
-
     });
 
     it('should downcase first letter in keys when downcase === true', function(done) {
@@ -128,6 +126,64 @@ describe('SDKAlias', function() {
       {
         Plus: 'some',
         Old: 'params'
+      }, noop);
+    });
+
+    it('should force booleans along the forceBool path sets', function(done) {
+      var providedPhyscialId = 'foobar';
+      var Alias = SDKAlias({
+        forceBools: [
+          'Short.Unfulfilled',
+          'Long.Unfulfilled.Path',
+          'Short',
+          'Wildcard.*',
+          'Arr.Wildcard.*',
+          'Super.Long.Unfulfilled.Path'
+        ],
+        api: {
+          test: function(finalParams, fakeReply) {
+            
+            assert(Object.keys(finalParams.Long).length === 1, 'A');
+            assert(finalParams.Long.Untouched === 'value', 'B');
+
+            assert(finalParams.Short === false, 'Short value: ' + typeof finalParams.Short);
+
+            assert(Object.keys(finalParams.Wildcard).length === 2, 'D');
+            assert(finalParams.Wildcard.truthyString === true, 'E');
+            assert(finalParams.Wildcard.falseyInt === false, 'F');
+
+            assert(Object.keys(finalParams.Arr).length === 1, 'G');
+            assert(finalParams.Arr.Wildcard.length === 4, 'H');
+            assert(finalParams.Arr.Wildcard[0] === true, 'A');
+            assert(finalParams.Arr.Wildcard[1] === false, 'A');
+            assert(finalParams.Arr.Wildcard[2] === false, 'A');
+            assert(finalParams.Arr.Wildcard[3] === true, 'A');
+
+            assert(Object.keys(finalParams).length === 4, 'A');
+
+            done();
+          }
+        },
+        method: 'test'
+      });
+
+      Alias(providedPhyscialId, {
+        Long: {
+          Untouched: 'value'
+        },
+        Short: 'false',
+        Wildcard: {
+          truthyString: 'true',
+          falseyInt: '0'
+        },
+        Arr: {
+          Wildcard: [
+            'true',
+            'false',
+            'null',
+            '1'
+          ]
+        }
       }, noop);
     });
   });
