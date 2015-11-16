@@ -17,7 +17,7 @@ A simple flow for generating CloudFormation Lambda-Backed Custom Resource handle
 
 Any custom resource using this tool as a dependency can run this deploy script from the root of the custom resource project to deploy Lambdas to all regions. Add this line to the `"scripts"` section of your `package.json` inside your repository using this module as a direct dependency:
 
-    "cfn-deploy": "chmod +x ./node_modules/cfn-lambda/deploy.sh && ./node_modules/cfn-lambda/deploy.sh;"
+    "cfn-lambda-deploy": "chmod +x ./node_modules/cfn-lambda/deploy.sh && ./node_modules/cfn-lambda/deploy.sh;"
 
 You must also set up:
 
