@@ -4,7 +4,7 @@
 
 ## Purpose
 
-A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and `NoUpdate` (noop detection on `Update`). Also provides convenience `Environment` values.
+A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and `NoUpdate` (noop detection on `Update`). Also provides convenience `Environment` values, and an `SDKAlias` function generator that structures and greatly simplifies the development of custom resources that are supported by the Node.js `aws-sdk` but not supported by CloudFormation.
 
 
 ## Examples
@@ -39,11 +39,16 @@ It should look like this:
 ![Insta-Deploy](./ex-deploy-term.png)
 
 
+
+
 ## Usage
 
 This is a contrived example call to fully demonstrate the way to interface with the creation API.
 
-#### Top-Level Handler Generation
+You can manually define these properties, or use `SDKAlias` for `Create`, `Update` and/or `Delete`. 
+
+
+### Resource Lambda Generation
 ```
 var CfnLambda = require('cfn-lambda');
 
@@ -67,7 +72,7 @@ exports.handler = CfnLambda({
 });
 ```
 
-#### `Environment` Convenience Property
+### `Environment` Convenience Property
 
 Provides convenience `Environment` values.: 
 
@@ -85,7 +90,6 @@ Provides convenience `Environment` values.:
 
 
 Only works after the generated `CfnLambda` function has been called by Lambda.
-
 
 
 #### `Create` Method Handler
@@ -238,4 +242,48 @@ function NoUpdate(CfnRequestParams, OldCfnRequestParams) {
 }
 ```
 
+## `SDKAlias` Function Generator
+
+Structures and accelerates development of resources supported by the `aws-sdk` (or your custom SDK) by offering declarative tools to ingest events and proxy them to AWS services.
+
+Will automatically correctly ignore `ServiceToken` from CloudFormation Properties. All settings are optional, except `api` and `method`.
+
+##### Usage Reference
+```
+var AWS = require('aws-sdk');
+var AnAWSApi = new AWS.SomeNamespace();
+var CfnLambda = require('cfn-lambda');
+// Then used as the Create property as defined in Usage above
+var MyAliasActionName = CfnLambda.SDKAlias({ // Like Create, Update, Delete
+  returnPhysicalId: 'KeyFromSDKReturn' || function(data) { return 'customValue'; }, 
+  downcase: boolean, // Downcase first letter of all top-level params from CloudFormation
+  api: AnAWSApi, // REQUIRED
+  method: 'methodNameInSDK', // REQUIRED
+  mapKeys: {
+    KeyNameInCfn: 'KeyNameForSDK'
+  },
+  keys: [ // Defaults to including ALL keys from CloudFormation, minus ServiceToken
+    'KeysFrom',
+    'CloudFormationProperties',
+    'ToPassTo',
+    'TheSDKMethod',
+    '**UsedBeforeMapKeys**'
+  ],
+  returnKeys: [
+    'KeysFrom',
+    'SDKReturnValue',
+    'ToUseWithCfn',
+    'Fn::GetAttr'
+  ],
+  ignoreErrorCodes: [IntegerCodeToIgnore, ExWouldBe404ForDeleteOps],
+  physicalIdAs: 'UsePhysicalIdAsThisKeyInSDKCall', 
+});
+
+// Then...
+
+exports.handler = CfnLambda({
+  Create: MyAliasActionName, // Doesn't have to be Create, can be Update or Delete
+  // ...
+});
+```
 

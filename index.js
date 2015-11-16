@@ -3,7 +3,10 @@ var path = require('path');
 
 var ValidationCheck = require(path.resolve(__dirname,
   'src', 'validationCheck'));
+var SDKAlias = require(path.resolve(__dirname,
+  'src', 'SDKAlias'));
 
+CfnLambdaFactory.SDKAlias = SDKAlias;
 CfnLambdaFactory.ValidationCheck = ValidationCheck;
 module.exports = CfnLambdaFactory;
 
