@@ -14,6 +14,10 @@ function CfnLambdaFactory(resourceDefinition) {
 
   return function CfnLambda(event, context) {
 
+    if (event && event.ResourceProperties) {
+      delete event.ResourceProperties.ServiceToken;
+    }
+
     CfnLambdaFactory.Environment = getEnvironment(context);
 
     var RequestType = event.RequestType;

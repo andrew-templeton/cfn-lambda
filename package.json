@@ -1,11 +1,8 @@
 {
   "name": "cfn-lambda",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "CloudFormation custom resource helper for Lambda Node.js runtime",
   "main": "index.js",
-  "directories": {
-    "example": "example"
-  },
   "scripts": {
     "test": "node ./node_modules/istanbul/lib/cli cover ./node_modules/mocha/bin/_mocha"
   },
@@ -14,10 +11,15 @@
     "url": "git+https://github.com/andrew-templeton/cfn-lambda.git"
   },
   "keywords": [
+    "aws",
     "cloudformation",
     "lambda",
+    "backed",
     "custom",
-    "resource"
+    "resource",
+    "helper",
+    "toolkit",
+    "tool"
   ],
   "author": "Andrew Templeton <andrw.tmplton@gmail.com> (https://github.com/andrew-templeton)",
   "license": "MIT",
