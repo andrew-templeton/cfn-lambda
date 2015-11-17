@@ -6,12 +6,18 @@
 
 A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and optional `NoUpdate` (noop detection on `Update`), defaulting to deep JSON object equality. Also provides convenience `Environment` values, and an `SDKAlias` function generator that structures and greatly simplifies the development of custom resources that are supported by the Node.js `aws-sdk` but not supported by CloudFormation.
 
+[This package on NPM](https://www.npmjs.com/package/cfn-lambda)  
+[This package on GitHub](https://www.github.com/andrew-templeton/cfn-lambda)
+
 
 ## Examples
 
- - [Custom::ApiGatewayRestApi](https://gitub.com/andrew-templeton/cfn-api-gateway-restapi)
- - [Custom::ApiGatewayDeployment](https://gitub.com/andrew-templeton/cfn-api-gateway-deployment)
- - [Custom::ApiGatewayStage](https://gitub.com/andrew-templeton/cfn-api-gateway-stage)
+ - *Stable* `Custom::ApiGatewayRestApi` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-restapi) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-restapi))
+ - *Stable* `Custom::ApiGatewayMethod` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-method) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method))
+ - *Stable* `Custom::ApiGatewayMethodResponse` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-method-response) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method-response))
+ - *Beta* `Custom::ApiGatewayDeployment` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-deployment) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-deployment))
+ - *Alpha* `Custom::ApiGatewayStage` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-stage) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-stage))
+
 
 ## Deployment of Lambdas
 
