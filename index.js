@@ -20,6 +20,9 @@ function CfnLambdaFactory(resourceDefinition) {
     if (event && event.ResourceProperties) {
       delete event.ResourceProperties.ServiceToken;
     }
+    if (event && event.OldResourceProperties) {
+      delete event.OldResourceProperties.ServiceToken;
+    }
 
     CfnLambdaFactory.Environment = getEnvironment(context);
 
