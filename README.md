@@ -4,7 +4,22 @@
 
 ## Purpose
 
-A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and optional `NoUpdate` (noop detection on `Update`), defaulting to deep JSON object equality. Also provides convenience `Environment` values, and an `SDKAlias` function generator that structures and greatly simplifies the development of custom resources that are supported by the Node.js `aws-sdk` but not supported by CloudFormation.
+A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`.
+
+Also supports:
+ - Validation of `'ResourceProperties'`
+   + Using inline JSONSchema objects as `Schema`
+   + Using a `SchemaPath` to JSONSchema file
+   + Using a custom `Validate` callback
+ - Optional `NoUpdate` callback, which runs as a READ function for when `Update` should be made due to all parameters being identical - because some resources still need to return attributes for `Fn::GetAtt` calls.
+ - Convenience `Environment` values
+   + Lambda ARN
+   + Lambda Name
+   + AWS Account ID for the Lambda
+   + Region for the Lambda
+ - Array of String `TriggersReplacement` for `Resource.Properties` key strings that force delegation to resource `Create` for seamless full replacement without downtime in many cases, and forcing `UPDATE_COMPLETE_CLEANUP_IN_PROGRESS`.
+ - An `SDKAlias` function generator that structures and greatly simplifies the development of custom resources that are supported by the Node.js `aws-sdk` but not supported by CloudFormation.
+ 
 
 [This package on NPM](https://www.npmjs.com/package/cfn-lambda)  
 [This package on GitHub](https://www.github.com/andrew-templeton/cfn-lambda)
@@ -73,7 +88,8 @@ exports.handler = CfnLambda({
   SchemaPath: SchemaPath, // Array path to JSONSchema v4 JSON file
   // end list
 
-  NoUpdate: NoUpdate // Optional
+  NoUpdate: NoUpdate, // Optional
+  TriggersReplacement: TriggersReplacement // Array<String> of properties forcing Replacement
 
 });
 ```
@@ -95,7 +111,7 @@ Provides convenience `Environment` values.:
     */
 
 
-Only works after the generated `CfnLambda` function has been called by Lambda.
+*Only works after the generated `CfnLambda` function has been called by Lambda.*
 
 
 #### `Create` Method Handler
@@ -231,23 +247,38 @@ var SchemaPath = [__dirname, 'src', 'mytemplate.json'];
 
 #### `NoUpdate` Method Handler
 
-Defaults to deep JSON object equality of the old and new parameters.
-  
-In some cases, it is favorable to ignore `'UPDATE'` command requests issued by CloudFormation. You can define a `NoUpdate` function to cover this use case. By returning `true`, the `'UPDATE'` command request will be ignored and trivially passed as `'SUCCESS'` in CloudFormation.
+Optional. Triggered by deep JSON object equality of the old and new parameters, if defined.
+
+Even when short-circuiting an `Update` is a good idea, a resource provider may still need to return a set of properties for use with `Fn::GetAtt` in CloudFormation templates. This `NoUpdate` handler triggers in the special case where no settings on the resource change, allowing the developer to simultaneously skip manipulation logic while doing read operations on resources to generate the attribute sets `Fn::GetAtt` will need.
 
 ``` 
-// Using a custom NoUpdate
-function NoUpdate(CfnRequestParams, OldCfnRequestParams) {
-  // code...
-  if (paramsDontChangeAndWantToNoop) {
-    // CloudFormation issued 'SUCCESS', but no real action is taken.
-    // Update method handler is skipped.
-    return true;
-  } else {
-    return false; // Update will proceed
+// Using a custom NoUpdate for READ to supply properties
+//   for Fn::GetAtt to access in CloudFormation templates
+function NoUpdate(PhysicalResourceId, CfnResourceProperties, reply) {
+  // code that should be read-only if you're sane...
+  if (errorAccessingInformation) {
+    return reply('with an informative message');
   }
+  // Can have many keys on the object, though I only show one here
+  reply(null, PhysicalResourceId, {Accessible: 'Attrs object in CFN template'});
 }
 ```
+
+## `TriggersReplacement` Array
+
+Optional. Tells `cfn-lambda` to divert the `'Update'` call from CloudFormation to the `Create` handler the developer assigns to the Lambda. This technique results in the most seamless resource replacement possible, by causing the new resource to be created before the old one is deleted. This `Delete` cleanup process occurs in the `UPDATE_COMPLETE_CLEANUP_IN_PROGRESS` phase after all new resources are created. This property facilitates triggering that said phase.
+
+```
+exports.handler = CfnLambda({
+  // other properties
+  TriggersReplacement: ['Foo', 'Bar'],
+  // other properties
+});
+```
+
+Now, if the Lambda above ever detects a change in the value of `Foo` or `Bar` resource Properties on `Update`, the Lambda will delegate to a two-phase `Create`-new-then-`Delete`-old resource replacement cycle. It will use the `Create` handler provided to the same `CfnLambda`, then subsequently the prodvided `Delete` if and only if the `Create` handler sends a `PhysicalResourceId` different from the original to the `reply` callback in the handler.
+
+
 
 ## `SDKAlias` Function Generator
 

@@ -236,29 +236,26 @@ describe('Update', function() {
 
   });
 
-  it('Should bypass update with custom NoUpdate', function(done) {
+  it('Should run custom code with custom NoUpdate', function(done) {
     var CfnRequest = HollowRequest();
     var expectedStatus = 'SUCCESS';
     var expectedReason = 'You done goofed, son!!';
     var updateWasRun = false;
+    var expectedAttr = 'attrs';
     CfnRequest.ResourceProperties = {
-      Foo: ['ARRAY', 'OF', 'STRING'] // Same value as OldResourceProperties upcased
+      Foo: ['array', 'of', 'string']
     };
     var Lambda = CfnLambda({
       Update: function(PhysicalId, Params, OldParams, reply) {
         updateWasRun = true;
         reply();
       },
-      NoUpdate: function(Props, OldProps) {
-        return Props &&
-          OldProps &&
-          Array.isArray(Props.Foo) &&
-          Array.isArray(OldProps.Foo) &&
-          Props.Foo.length === OldProps.Foo.length &&
-          Props.Foo.map(downcase).join('') === OldProps.Foo.map(downcase).join('');
-        function downcase(str) {
-          return str.toLowerCase();
-        }
+      NoUpdate: function(PhysicalId, Params, reply) {
+        setTimeout(function() {
+          reply(null, PhysicalId, {
+            usable: expectedAttr
+          });
+        });
       }
     });
 
@@ -270,7 +267,53 @@ describe('Update', function() {
       assert(expectedStackId === cfnResponse.body.StackId, 'Bad StackID');
       assert(expectedRequestId === cfnResponse.body.RequestId, 'Bad RequestId');
       assert(expectedLogicalResourceId === cfnResponse.body.LogicalResourceId, 'Bad LogicalResourceId');
+      assert(CfnRequest.PhysicalResourceId === cfnResponse.body.PhysicalResourceId, 'Bad PhysicalResourceId');
+      assert(expectedAttr === cfnResponse.body.Data.usable, 'Bad attrs hash');
+      assert(Object.keys(cfnResponse.body.Data).length === 1, 'Bad attrs hash');
       assert(!updateWasRun, 'Update ran, should not run');
+      done();
+    });
+
+  });
+
+  it('Should delegate to Create when triggering Replacement', function(done) {
+    var CfnRequest = HollowRequest();
+    var expectedStatus = 'SUCCESS';
+    var expectedReason = 'You done goofed, son!!';
+    var updateWasRun = false;
+    var createWasRun = false;
+    var expectedAttr = 'attrs';
+    CfnRequest.ResourceProperties = {
+      Foo: 'CHANGED',
+      Bar: 'unchanged'
+    };
+    CfnRequest.OldResourceProperties = {
+      Foo: 'ORIGINAL',
+      Bar: 'unchanged'
+    };
+    var Lambda = CfnLambda({
+      Update: function(PhysicalId, Params, OldParams, reply) {
+        updateWasRun = true;
+        reply();
+      },
+      Create: function(Params, reply) {
+        createWasRun = true;
+        reply();
+      },
+      TriggersReplacement: ['Foo']
+    });
+
+    Server.on(function() {
+      Lambda(CfnRequest, ContextStub);
+    }, function(cfnResponse) {
+      assert(expectedUrl === cfnResponse.url, 'Bad publish URL');
+      assert(expectedStatus === cfnResponse.body.Status, 'Bad Status');
+      assert(expectedStackId === cfnResponse.body.StackId, 'Bad StackID');
+      assert(expectedRequestId === cfnResponse.body.RequestId, 'Bad RequestId');
+      assert(expectedLogicalResourceId === cfnResponse.body.LogicalResourceId, 'Bad LogicalResourceId');
+      assert(CfnRequest.PhysicalResourceId === cfnResponse.body.PhysicalResourceId, 'Bad PhysicalResourceId');
+      assert(!updateWasRun, 'Update ran, should not run');
+      assert(createWasRun, 'Create did not run, should run');
       done();
     });
 

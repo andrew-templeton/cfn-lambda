@@ -11,7 +11,7 @@ module.exports = function(options) {
         break;
       // Delete
       case 3:
-        console.log('Aliasing method %s as DELETE operation.', options.method);
+        console.log('Aliasing method %s as DELETE or NOOPUPDATE operation.', options.method);
         SimpleAlias(options, arguments[0], arguments[1], arguments[2]);
         break;
       // Update

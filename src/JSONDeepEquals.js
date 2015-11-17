@@ -8,8 +8,8 @@ module.exports = function JSONDeepEquals(a, b) {
     var av = a[k];
     var bv = b[kb[i]];
     var type = typeof av;
-    return type == typeof bv && type == 'object'
+    return type === typeof bv && type === 'object'
       ? JSONDeepEquals(av, bv)
-      : (av === bv || (isNaN(av) && isNaN(bv)));
+      : (av === bv || (type === 'number' && isNaN(av) && isNaN(bv)));
   });
 };

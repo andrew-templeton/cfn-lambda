@@ -11,6 +11,7 @@ var JSONDeepEquals = require(path.resolve(__dirname,
 CfnLambdaFactory.SDKAlias = SDKAlias;
 CfnLambdaFactory.ValidationCheck = ValidationCheck;
 CfnLambdaFactory.JSONDeepEquals = JSONDeepEquals;
+CfnLambdaFactory.PluckedEquality = PluckedEquality;
 module.exports = CfnLambdaFactory;
 
 function CfnLambdaFactory(resourceDefinition) {
@@ -30,9 +31,6 @@ function CfnLambdaFactory(resourceDefinition) {
     var Params = event.ResourceProperties;
     var OldParams = event.OldResourceProperties;
     var RequestPhysicalId = event.PhysicalResourceId;
-    var noUpdateChecker = typeof resourceDefinition.NoUpdate === 'function'
-      ? resourceDefinition.NoUpdate
-      : JSONDeepEquals;
 
     console.log('REQUEST RECEIVED:\n', JSON.stringify(event));
     
@@ -41,24 +39,42 @@ function CfnLambdaFactory(resourceDefinition) {
       Schema: resourceDefinition.Schema,
       SchemaPath: resourceDefinition.SchemaPath
     });
-    if (invalidation && event.RequestType !== 'Delete') {
+    if (invalidation) {
+      if (RequestType === 'Delete') {
+        console.log('cfn-lambda: Got Delete with an invalidation, ' +
+          'tripping failsafe for ROLLBACK states and exiting with success.');
+        return reply();
+      }
+      console.log('cfn-lambda: Found an invalidation.');
       return reply(invalidation);
     } 
     if (RequestType === 'Create') {
+      console.log('cfn-lambda: Delegating to Create handler.');
       return resourceDefinition.Create(Params, reply);
     }
-    if (RequestType === 'Update' && noUpdateChecker(Params, OldParams)) {
-      return reply();
-    }
     if (RequestType === 'Update') {
+      if (JSONDeepEquals(Params, OldParams)) {
+        console.log('cfn-lambda: Delegating to NoUpdate handler, ' +
+        'or exiting with success (Update with unchanged params).');
+        return 'function' === typeof resourceDefinition.NoUpdate
+          ? resourceDefinition.NoUpdate(RequestPhysicalId, Params, reply)
+          : reply(null, RequestPhysicalId);
+      }
+      if (Array.isArray(resourceDefinition.TriggersReplacement) &&
+        !PluckedEquality(resourceDefinition.TriggersReplacement, Params, OldParams)) {
+        console.log('cfn-lambda: Caught Replacement trigger key change, ' +
+          'delegating to Create, Delete will be called on old resource ' +
+          'during UPDATE_COMPLETE_CLEANUP_IN_PROGRESS phase.');
+        return resourceDefinition.Create(Params, reply);
+      }
+      console.log('cfn-lambda: Delegating to Update handler.');
       return resourceDefinition.Update(RequestPhysicalId, Params, OldParams, reply);
     }
-    if (RequestType === 'Delete' && invalidation) {
-      return reply();
-    }
     if (RequestType === 'Delete') {
+      console.log('cfn-lambda: Delegating to Delete handler.');
       return resourceDefinition.Delete(RequestPhysicalId, Params, reply);
     }
+    console.log('cfn-lambda: Uh oh! Called with unrecognized EventType!');
     return reply('The impossible happend! ' +
       'CloudFormation sent an unknown RequestType.');
 
@@ -138,6 +154,17 @@ function CfnLambdaFactory(resourceDefinition) {
     }
 
   };
+}
+
+function PluckedEquality(keySet, fresh, old) {
+  return JSONDeepEquals(pluck(keySet, fresh), pluck(keySet, old));
+}
+
+function pluck(keySet, hash) {
+  return keySet.reduce(function(plucked, key) {
+    plucked[key] = hash[key];
+    return plucked;
+  }, {});
 }
 
 function getEnvironment(context) {
