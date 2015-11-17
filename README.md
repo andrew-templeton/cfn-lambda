@@ -12,11 +12,11 @@ A simple flow for generating CloudFormation Lambda-Backed Custom Resource handle
 
 ## Examples
 
- - *Stable* `Custom::ApiGatewayRestApi` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-restapi) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-restapi))
- - *Stable* `Custom::ApiGatewayMethod` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-method) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method))
- - *Stable* `Custom::ApiGatewayMethodResponse` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-method-response) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method-response))
- - *Beta* `Custom::ApiGatewayDeployment` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-deployment) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-deployment))
- - *Alpha* `Custom::ApiGatewayStage` ([GitHub](https://gitub.com/andrew-templeton/cfn-api-gateway-stage) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-stage))
+ - *Stable* `Custom::ApiGatewayRestApi` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-restapi) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-restapi))
+ - *Stable* `Custom::ApiGatewayMethod` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-method) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method))
+ - *Stable* `Custom::ApiGatewayMethodResponse` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-method-response) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method-response))
+ - *Beta* `Custom::ApiGatewayDeployment` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-deployment) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-deployment))
+ - *Alpha* `Custom::ApiGatewayStage` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-stage) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-stage))
 
 
 ## Deployment of Lambdas
