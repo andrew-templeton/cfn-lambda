@@ -5,9 +5,12 @@ var ValidationCheck = require(path.resolve(__dirname,
   'src', 'validationCheck'));
 var SDKAlias = require(path.resolve(__dirname,
   'src', 'SDKAlias'));
+var JSONDeepEquals = require(path.resolve(__dirname,
+  'src', 'JSONDeepEquals'));
 
 CfnLambdaFactory.SDKAlias = SDKAlias;
 CfnLambdaFactory.ValidationCheck = ValidationCheck;
+CfnLambdaFactory.JSONDeepEquals = JSONDeepEquals;
 module.exports = CfnLambdaFactory;
 
 function CfnLambdaFactory(resourceDefinition) {
@@ -26,7 +29,7 @@ function CfnLambdaFactory(resourceDefinition) {
     var RequestPhysicalId = event.PhysicalResourceId;
     var noUpdateChecker = typeof resourceDefinition.NoUpdate === 'function'
       ? resourceDefinition.NoUpdate
-      : objectPerfectEqualityByJSON;
+      : JSONDeepEquals;
 
     console.log('REQUEST RECEIVED:\n', JSON.stringify(event));
     
@@ -132,10 +135,6 @@ function CfnLambdaFactory(resourceDefinition) {
     }
 
   };
-}
-
-function objectPerfectEqualityByJSON(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 function getEnvironment(context) {

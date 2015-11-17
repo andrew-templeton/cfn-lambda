@@ -4,7 +4,7 @@
 
 ## Purpose
 
-A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and `NoUpdate` (noop detection on `Update`). Also provides convenience `Environment` values, and an `SDKAlias` function generator that structures and greatly simplifies the development of custom resources that are supported by the Node.js `aws-sdk` but not supported by CloudFormation.
+A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`, validation of resource `'Properties'`, and optional `NoUpdate` (noop detection on `Update`), defaulting to deep JSON object equality. Also provides convenience `Environment` values, and an `SDKAlias` function generator that structures and greatly simplifies the development of custom resources that are supported by the Node.js `aws-sdk` but not supported by CloudFormation.
 
 
 ## Examples
@@ -224,12 +224,13 @@ var SchemaPath = [__dirname, 'src', 'mytemplate.json'];
 
 
 #### `NoUpdate` Method Handler
+
+Defaults to deep JSON object equality of the old and new parameters.
   
 In some cases, it is favorable to ignore `'UPDATE'` command requests issued by CloudFormation. You can define a `NoUpdate` function to cover this use case. By returning `true`, the `'UPDATE'` command request will be ignored and trivially passed as `'SUCCESS'` in CloudFormation.
 
-`NoUpdate` is optional. If `NoUpdate` is not specified, equality of the `OldCfnRequestParams` and `CfnRequestParams` is tested using a simple `JSON.stringify` of both objects and string equality check. Since object properties may not be `JSON.stringified` in the same order, this is not a reliable fallback for users who intend to leverage this kind of check. The default is meant only as a low-pass filter.
-
 ``` 
+// Using a custom NoUpdate
 function NoUpdate(CfnRequestParams, OldCfnRequestParams) {
   // code...
   if (paramsDontChangeAndWantToNoop) {
