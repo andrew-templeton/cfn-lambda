@@ -31,7 +31,7 @@ RESOURCE_TYPE=$(cat "$DIR"'/../../package.json' \
   | sed 's/,//');
 
 # Housekeeping
-FULL_NAME='CfnLambdaResource-'"$RESOURCE_TYPE"'-'"$VERSION";
+FULL_NAME="$RESOURCE_TYPE"'-'"$VERSION";
 ZIP_LOCATION='/tmp/'"$FULL_NAME"'.zip';
 POLICY_ARG='file://'"$DIR"'/../../execution-policy.json';
 TRUST_ARG='file://'"$DIR"'/lib/lambda.trust.json';
