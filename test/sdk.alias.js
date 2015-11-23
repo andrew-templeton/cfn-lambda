@@ -129,7 +129,7 @@ describe('SDKAlias', function() {
       }, noop);
     });
 
-    it('should force booleans along the forceBool path sets', function(done) {
+    it('should force booleans along the forceBools path sets', function(done) {
       var providedPhyscialId = 'foobar';
       var Alias = SDKAlias({
         forceBools: [
@@ -182,6 +182,63 @@ describe('SDKAlias', function() {
             'false',
             'null',
             '1'
+          ]
+        }
+      }, noop);
+    });
+    it('should force numbers along the forceNums path sets', function(done) {
+      var providedPhyscialId = 'foobar';
+      var Alias = SDKAlias({
+        forceNums: [
+          'Short.Unfulfilled',
+          'Long.Unfulfilled.Path',
+          'Short',
+          'Wildcard.*',
+          'Arr.Wildcard.*',
+          'Super.Long.Unfulfilled.Path'
+        ],
+        api: {
+          test: function(finalParams, fakeReply) {
+            
+            assert(Object.keys(finalParams.Long).length === 1, 'A');
+            assert(finalParams.Long.Untouched === '1337', 'B');
+
+            assert(finalParams.Short === 1337, 'C');
+
+            assert(Object.keys(finalParams.Wildcard).length === 2, 'D');
+            assert(finalParams.Wildcard.truthyString === 1, 'E');
+            assert(finalParams.Wildcard.falseyInt === 0, 'F');
+
+            assert(Object.keys(finalParams.Arr).length === 1, 'G');
+            assert(finalParams.Arr.Wildcard.length === 4, 'H');
+            assert(finalParams.Arr.Wildcard[0] === 0, 'I');
+            assert(finalParams.Arr.Wildcard[1] === 1, 'J');
+            assert(finalParams.Arr.Wildcard[2] === 2, 'K');
+            assert(finalParams.Arr.Wildcard[3] === 3, 'L');
+
+            assert(Object.keys(finalParams).length === 4, 'M');
+
+            done();
+          }
+        },
+        method: 'test'
+      });
+
+      Alias(providedPhyscialId, {
+        Long: {
+          Untouched: '1337'
+        },
+        Short: '1337',
+        Wildcard: {
+          truthyString: '1',
+          falseyInt: 0
+        },
+        Arr: {
+          Wildcard: [
+            '0',
+            '1',
+            2,
+            '3'
           ]
         }
       }, noop);

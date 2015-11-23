@@ -63,6 +63,9 @@ function usableParams(params, options, physicalId) {
   if (Array.isArray(options.forceBools) && options.forceBools.every(isString)) {
     forceBoolean(paramObject, options.forceBools);
   }
+  if (Array.isArray(options.forceNums) && options.forceNums.every(isString)) {
+    forceNum(paramObject, options.forceNums);
+  }
   var withPhysicalId = isString(options.physicalIdAs)
     ? addAliasedPhysicalId(paramObject, options.physicalIdAs, physicalId)
     : paramObject;
@@ -118,16 +121,7 @@ function accessFunction(key) {
   };
 }
 
-function forceBoolean(params, pathSet) {
-  var translations = {
-    '0': false,
-    'false': false,
-    '': false,
-    'null': false,
-    'undefined': false,
-    '1': true,
-    'true': true
-  };
+function forcePaths(params, pathSet, translator) {
   pathSet.forEach(function(path) {
     var pathTokens = path.split('.');
     var lastToken = pathTokens.pop();
@@ -138,13 +132,40 @@ function forceBoolean(params, pathSet) {
     }, params);
     if (intermediate) {
       if (lastToken === '*') {
-        Object.keys(intermediate).forEach(function(key) {
-          intermediate[key] = translations[intermediate[key]];
-        });
+        if (Array.isArray(intermediate)) {
+          intermediate.forEach(function(value, index) {
+            intermediate[index] = translator(value);
+          });
+        } else {
+          Object.keys(intermediate).forEach(function(key) {
+            intermediate[key] = translator(intermediate[key]);
+          });
+        }
       } else if (intermediate[lastToken] !== undefined) {
-        intermediate[lastToken] = translations[intermediate[lastToken]];
+        intermediate[lastToken] = translator(intermediate[lastToken]);
       }
     }
+  });
+}
+
+function forceNum(params, pathSet) {
+  forcePaths(params, pathSet, function(value) {
+    return +value;
+  });
+}
+
+function forceBoolean(params, pathSet) {
+  var translations = {
+    '0': false,
+    'false': false,
+    '': false,
+    'null': false,
+    'undefined': false,
+    '1': true,
+    'true': true
+  };
+  forcePaths(params, pathSet, function(value) {
+    return translations[value];
   });
 }
 

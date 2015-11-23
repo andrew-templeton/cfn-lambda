@@ -90,7 +90,9 @@ exports.handler = CfnLambda({
   // end list
 
   NoUpdate: NoUpdate, // Optional
-  TriggersReplacement: TriggersReplacement // Array<String> of properties forcing Replacement
+  TriggersReplacement: TriggersReplacement, // Array<String> of properties forcing Replacement
+
+  LongRunning: <see Long Running below> // Optional. Configure a lambda to last beyond 5 minutes.
 
 });
 ```
@@ -264,6 +266,106 @@ function NoUpdate(PhysicalResourceId, CfnResourceProperties, reply) {
   reply(null, PhysicalResourceId, {Accessible: 'Attrs object in CFN template'});
 }
 ```
+
+
+## Long Running
+
+*This is very advanced Lambda self replication.*
+
+The inner workings of this feature are a lot to take in. I strongly suggest you just read the source code for `cfn-elasticsearch-domain` to see how the `index.js` file utilizes the `LongRunning` feature, as the concrete example code is much more understandable than abstract definitions of parameters and options.
+
+`cfn-elasticsearch-domain/index.js` [GitHub](https://www.github.com/andrew-templeton/cfn-elasticsearch-domain/blob/master/index.js)
+
+*If you have the appetite for it... Read on...*
+
+Some resources will take a considerable amount of time to complete, like an Elasticsearch Domain. In order to utilize Lambda-Backed Custom Resources within CloudFormation while avoiding the hard 300 second / 5 minute Lambda timeout for resources that will take more than 5 minutes to finish, `cfn-lambda` allows resource developers to leverage bundled Lambda self-replication logic. Developers can configure the `LongRunning` property on the lambda definition options object with a few settings to tell `cfn-lambda` to simply run some action initialization code (such as initiating an Elasticsearch Domain Create), then periodically self-replicate to check the status of the long-running process. The majority of cases where AWS APIs or SDKs return `statusCode === 202` will use this technique to avoid Lambda death at 5 minutes.
+
+The self-replication strategy will trigger if the developer configures the following on the LongRunning property object: `PingInSeconds`, `MaxPings`, `LambdaApi`, `Methods.METHOD_NAME`.
+
+##### PingInSeconds
+
+The duration a Lambda will wait between spawning self-replication calls and triggering the next `LongRunning.Methods.METHOD_NAME` call. This value should not exceed `240` (4 minutes), because we need to leave enough time before the 5 minute hard process death is triggered by AWS.
+
+After this time, the lambda will spawn a new lambda, which will call the `LongRunning.Method.METHOD_NAME`, where `METHOD_NAME` is `Create`, `Delete`, `Update`, depending on which are configured and the lifecycle phase the resource is moving through.
+
+##### MaxPings
+
+The maximum number of self-respawn and check cycles the Lambda will go through. After exceeding this number, the Lambda will circuit break and send a `Failed to Stabilize` response to the CloudFormation stack.
+
+##### LambdaApi
+
+`cfn-lambda` uses this namespace to invoke the Lambda. Allows the Custom Resource developer using `cfn-lambda` to specify a Lambda API version, or stub the value out for testing.
+
+In most cases, just pass `new AWS.Lambda({apiVersion: '2015-03-31'})` as the API namespace.
+
+##### Methods
+
+Most of the `LongRunning` logic happens here. At its most configured, this subobject will have 3 properties corresponding to the normal actions: `Create`, `Update`, and `Delete`. 
+
+When you configure one of these properties, the flow of that CloudFormation action type changes - within the `reply` callback function in the corresponding normal/top-level callback you defined for the resource, `reply`-ing with success just tells `cfn-lambda` that you correctly initialized the `Create`/`Delete`/`Update` for the resource, and to start using the corresponding `LongRunning.Methods.METHOD` to ping to final completion. That is, the resource will not `COMPLETE` the action until the function you define finalizes the `SUCCESS`.
+
+Read below to see how to define each `LongRunning.Methods.METHOD`...
+
+#### `LongRunningContext` Param Object
+
+All three `LongRunning.Methods` receive a special object as their first parameter. The `LongRunningContext` object carries useful state across all spawned lambda ping cycles.
+
+ - `LongRunningContext.RawResponse`: carries the original intercepted call that your first Create initialization call tried to send to CloudFormation. Used internally for state manipulation. DO NOT ALTER THIS VALUE unless you *really* know what you're doing, as tampering can cause Lambda recursion to spiral out of control!
+ - `LongRunningContext.PhysicalResourceId`: Carries the original `PhysicalResourceId` intercepted call that your first Create initialization call tried to send to CloudFormation. Useful if your check functions need this value and cannot recompute it from the `ResourceProperties` sent by CloudFormation.
+ - `LongRunningContext.Data`: Carries the original data hash, if present, intercepted from your call to `reply` within the initializer method. Useful if your check functions need these data value(s) and cannot recompute them from the `ResourceProperties` sent by CloudFormation. Will not be present if you did not pass a third parameter to `reply` in the initializer, since the `GetAtt`-usable `Data` hash is optional in `cfn-lambda`.
+ - `LongRunningContext.PassedPings`: The number of ping spawns before this current run that have occurred. DO NOT ALTER THIS NUMBER! Subtracting from this number will make your Lambdas infinitely self-replicate, *very very bad*!
+
+
+#### `LongRunning.Methods.Create`
+
+Will be called during Lambda pingspawn cycles. Here, `CheckCreate` is an example of a check function definition for `LongRunning.Methods.Create`.
+
+```
+function CheckCreate(LongRunningContext, params, reply, notDone) {
+  // LongRunningContext is object type specified above
+  // params are Properties straight from CloudFomation
+  // reply is callback just like in normal Create,
+  //    call it with reply(errMsg) or reply(null, physicalId, AttrHash)
+  // notDone takes no parameters, use this to tell 
+  //   cfn-lambda to use another ping/spawn cycle and check again later
+}
+```
+
+#### `LongRunning.Methods.Update`
+
+Will be called during Lambda pingspawn cycles. Here, `CheckUpdate` is an example of a check function definition for `LongRunning.Methods.Update`.
+
+```
+function CheckUpdate(LongRunningContext, physcialId, params, oldParams, reply, notDone) {
+  // LongRunningContext is object type specified above
+  // physicalId is PhysicalResourceId from pre-Update resource state
+  // params are Properties straight from CloudFomation
+  // oldParams are Properties from CloudFormation for before the Update began
+  // reply is callback just like in normal Update,
+  //    call it with reply(errMsg) or reply(null, physicalId, AttrHash)
+  //    to finalize the transition and notify CloudFormation.
+  // notDone takes no parameters, use this to denote no errors and tell 
+  //   cfn-lambda to use another ping/spawn cycle and check again later
+}
+```
+
+#### `LongRunning.Methods.Delete`
+
+Will be called during Lambda pingspawn cycles. Here, `CheckDelete` is an example of a check function definition for `LongRunning.Methods.Delete`.
+
+```
+function CheckDelete(LongRunningContext, physcialId, params, reply, notDone) {
+  // LongRunningContext is object type specified above
+  // physicalId is PhysicalResourceId from pre-Delete resource state
+  // params are Properties straight from CloudFomation
+  // reply is callback just like in normal Delete,
+  //    call it with reply(errMsg) or reply(null, physicalId, AttrHash)
+  //    to finalize the transition and notify CloudFormation.
+  // notDone takes no parameters, use this to denote no errors and tell 
+  //   cfn-lambda to use another ping/spawn cycle and check again later
+}
+```
+
 
 ## `TriggersReplacement` Array
 
