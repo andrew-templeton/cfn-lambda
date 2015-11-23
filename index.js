@@ -7,11 +7,14 @@ var SDKAlias = require(path.resolve(__dirname,
   'src', 'SDKAlias'));
 var JSONDeepEquals = require(path.resolve(__dirname,
   'src', 'JSONDeepEquals'));
+var DefaultExpander = require(path.resolve(__dirname,
+  'src', 'DefaultExpander'));
 
 CfnLambdaFactory.SDKAlias = SDKAlias;
 CfnLambdaFactory.ValidationCheck = ValidationCheck;
 CfnLambdaFactory.JSONDeepEquals = JSONDeepEquals;
 CfnLambdaFactory.PluckedEquality = PluckedEquality;
+CfnLambdaFactory.DefaultExpander = DefaultExpander;
 module.exports = CfnLambdaFactory;
 
 function CfnLambdaFactory(resourceDefinition) {
@@ -28,8 +31,10 @@ function CfnLambdaFactory(resourceDefinition) {
     CfnLambdaFactory.Environment = getEnvironment(context);
 
     var RequestType = event.RequestType;
-    var Params = event.ResourceProperties;
-    var OldParams = event.OldResourceProperties;
+    var Params = event.ResourceProperties &&
+      DefaultExpander(event.ResourceProperties);
+    var OldParams = event.OldResourceProperties &&
+      DefaultExpander(event.OldResourceProperties);
     var RequestPhysicalId = event.PhysicalResourceId;
 
     console.log('REQUEST RECEIVED:\n', JSON.stringify(event));

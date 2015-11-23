@@ -7,6 +7,7 @@
 A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`.
 
 Also supports:
+ - Automatic expansion of `__default__` `Properties` values into any tree or subtree of any Custom Resource utilizing `cfn-lambda` for implementation 
  - Validation of `'ResourceProperties'`
    + Using inline JSONSchema objects as `Schema`
    + Using a `SchemaPath` to JSONSchema file
@@ -279,7 +280,6 @@ exports.handler = CfnLambda({
 Now, if the Lambda above ever detects a change in the value of `Foo` or `Bar` resource Properties on `Update`, the Lambda will delegate to a two-phase `Create`-new-then-`Delete`-old resource replacement cycle. It will use the `Create` handler provided to the same `CfnLambda`, then subsequently the prodvided `Delete` if and only if the `Create` handler sends a `PhysicalResourceId` different from the original to the `reply` callback in the handler.
 
 
-
 ## `SDKAlias` Function Generator
 
 Structures and accelerates development of resources supported by the `aws-sdk` (or your custom SDK) by offering declarative tools to ingest events and proxy them to AWS services.
@@ -331,3 +331,140 @@ exports.handler = CfnLambda({
 });
 ```
 
+## Defaults
+
+Sometimes it is advantageous to be able to reuse JSON objects or fragments of JSON objects in `Properties` of Custom Resources, like when you need to build similar complex/large resources frequently that differ by only a few properties.
+
+Any module using `cfn-lambda` supports `__default__` property expansion. `__default__` can be added anywhere in the `Properties` object for a resource, with `__default__` containing an arbitrary `JSON/String/Array/null/Number` value serialized using `toBase64(JSON.stringify(anyObject))`. `cfn-lambda` will expand these properties *before* hitting any validation checks, by running `JSON.parse(fromBase64(encodedDefault))` recursively, and overwriting any values in the `__default__` tree with those actually set on the `Properties` object.
+
+The best example of this is the `cfn-variable` module's `example.template.json`, wherein a very large `RestApi` is created with over a large repeated subtree of `Resource` objects. `cfn-variable` is a custom resource that takes any value and serializes it using `toBase64(JSON.stringify(anyValue))`, making it a perfect fit for this behavior. 
+
+In the example in `cfn-variable`, this technique is used to create 120 `Resource` objects in under 15 seconds (this example uses less):
+```
+// This is cfn-variable storing the serialized object:
+"MySubtreeVariable": {
+  "Type": "Custom::Variable",
+  "Properties": {
+    "ServiceToken": {
+      "Fn::Join": [
+        ":",
+        [
+          "arn",
+          "aws",
+          "lambda",
+          {
+            "Ref": "AWS::Region"
+          },
+          {
+            "Ref": "AWS::AccountId"
+          },
+          "function",
+          {
+            "Ref": "VariableCustomResourceName"
+          }
+        ]
+      ]
+    },
+    "VariableValue": {
+      "ChildResources": [
+        {
+          "PathPart": "a",
+          "ChildResources": [
+            {
+              "PathPart": "aa",
+              "ChildResources": [
+                {
+                  "PathPart": "aaa"
+                },
+                {
+                  "PathPart": "aab"
+                },
+                {
+                  "PathPart": "aac"
+                }
+              ]
+            },
+            {
+              "PathPart": "ab",
+              "ChildResources": [
+                {
+                  "PathPart": "aba"
+                },
+                {
+                  "PathPart": "abb"
+                },
+                {
+                  "PathPart": "abc"
+                }
+              ]
+            },
+            {
+              "PathPart": "ac",
+              "ChildResources": [
+                {
+                  "PathPart": "aca"
+                },
+                {
+                  "PathPart": "acb"
+                },
+                {
+                  "PathPart": "acc"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+},
+// Then this will make the tree 3x because you used a variable with __default__
+"ExpandedResourceTree": {
+  "DependsOn": [
+    "MyRestApi",
+    "MyVariable"
+  ],
+  "Type": "Custom::ApiGatewayResourceTree",
+  "Properties": {
+    "ServiceToken": "<the token>",
+    "RestApiId": {
+      "Ref": "MyRestApi"
+    },
+    "ParentId": {
+      "Fn::GetAtt": [
+        "MyRestApi",
+        "RootResourceId"
+      ]
+    },
+    "ChildResources": [
+      {
+        "PathPart": "alpha",
+        "__default__": {
+          "Fn::GetAtt": [
+            "MySubtreeVariable",
+            "Value"
+          ]
+        }
+      },
+      {
+        "PathPart": "beta",
+        "__default__": {
+          "Fn::GetAtt": [
+            "MySubtreeVariable",
+            "Value"
+          ]
+        }
+      },
+      {
+        "PathPart": "gamma",
+        "__default__": {
+          "Fn::GetAtt": [
+            "MySubtreeVariable",
+            "Value"
+          ]
+        }
+      }
+    ]
+  }
+}
+```

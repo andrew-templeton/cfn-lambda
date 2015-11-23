@@ -4,6 +4,15 @@ module.exports = function JSONDeepEquals(a, b) {
   }
   var ka = Object.keys(a).sort();
   var kb = Object.keys(b).sort();
+  if (Object(a) !== a) {
+    return a === b;
+  }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    return Array.isArray(b) && Array.isArray(a) &&
+      a.length === b.length && a.every(function(av, i) {
+        return JSONDeepEquals(av, b[i]);
+      });
+  }
   return ka.length === kb.length && ka.every(function(k, i) {
     var av = a[k];
     var bv = b[kb[i]];

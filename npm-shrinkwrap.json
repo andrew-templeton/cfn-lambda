@@ -1,6 +1,6 @@
 {
   "name": "cfn-lambda",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "dependencies": {
     "jayschema": {
       "version": "0.3.1",
