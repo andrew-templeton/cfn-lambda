@@ -9,12 +9,16 @@ var JSONDeepEquals = require(path.resolve(__dirname,
   'src', 'JSONDeepEquals'));
 var DefaultExpander = require(path.resolve(__dirname,
   'src', 'DefaultExpander'));
+var Composite = require(path.resolve(__dirname,
+  'src', 'Composite'));
 
 CfnLambdaFactory.SDKAlias = SDKAlias;
 CfnLambdaFactory.ValidationCheck = ValidationCheck;
 CfnLambdaFactory.JSONDeepEquals = JSONDeepEquals;
 CfnLambdaFactory.PluckedEquality = PluckedEquality;
 CfnLambdaFactory.DefaultExpander = DefaultExpander;
+CfnLambdaFactory.Composite = Composite;
+CfnLambdaFactory.Module = Composite.Module;
 module.exports = CfnLambdaFactory;
 
 function CfnLambdaFactory(resourceDefinition) {
