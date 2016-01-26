@@ -63,8 +63,6 @@ function handle_roles(err) {
   role_arn = format('arn:aws:iam::{}:role/{}',
     user_data.User.Arn.replace(ACCOUNT_RE, '$1'), FULL_NAME);
 
-  console.log(role_arn);
-
   async.waterfall([
       function(callback) {
         iam.createRole({AssumeRolePolicyDocument: TRUST, RoleName: FULL_NAME}, function(err, data) {
