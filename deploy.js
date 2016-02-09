@@ -1,4 +1,4 @@
-var main = function(default_region, deploy_regions, main_callback){
+var main = function(cfn_module, default_region, deploy_regions, main_callback){
     // main code
 
 	var format = require('string-format');
@@ -10,8 +10,10 @@ var main = function(default_region, deploy_regions, main_callback){
 
 	var DEFAULT_REGION = default_region ? default_region : 'us-east-1';
 	var REGIONS =  deploy_regions ? deploy_regions :['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1'];
-	var RESOURCE_DIR = path.join(__dirname, '..', '..');
+
+	var RESOURCE_DIR = cfn_module ? path.join(process.cwd(), 'node_modules', cfn_module) : path.join(__dirname, '..', '..');
 	var CFN_LAMBDA_DIR = path.join(__dirname, 'lib');
+
 	var RESOURCE_INFO = require(path.join(RESOURCE_DIR, 'package.json'));
 	var FULL_NAME = format("{}-{}", RESOURCE_INFO.name, RESOURCE_INFO.version.replace(/\./g, '-'));
 	var POLICY = fs.readFileSync(path.join(RESOURCE_DIR, 'execution-policy.json')).toString();
@@ -203,7 +205,7 @@ var main = function(default_region, deploy_regions, main_callback){
 }
 
 if (require.main === module) {
-    main(null, null, null);
+    main(null, null, null, null);
 }
 
 module.exports = main;

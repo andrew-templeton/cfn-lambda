@@ -297,3 +297,6 @@ function getEnvironment(context) {
     LambdaName: parsedArn[3]
   };
 }
+
+module.exports.deploy = require(path.resolve(__dirname,
+  'deploy'));
