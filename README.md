@@ -43,7 +43,7 @@ Any custom resource using this tool as a dependency can run this deploy script f
 
 You can also deploy the Lambdas programmatically like so:
 
-                                          (cfn-module)           (default region)   (regions)     (callback)
+                                          (cfn-module)      (default region) (regions)  (callback)
     node -e "require('cfn-lambda').deploy('cfn-yourmodule', 'us-east-1', ['us-east-1'], null);"
 
 You must also set up:
