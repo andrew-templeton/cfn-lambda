@@ -41,6 +41,11 @@ Any custom resource using this tool as a dependency can run this deploy script f
 
     "cfn-lambda-deploy": "node ./node_modules/cfn-lambda/deploy.js"
 
+You can also deploy the Lambdas programmatically like so:
+
+                                          (cfn-module)           (default region)   (regions)     (callback)
+    node -e "require('cfn-lambda').deploy('cfn-yourmodule', 'us-east-1', ['us-east-1'], null);"
+
 You must also set up:
 
 1. Add `<reporoot>/execution-policy.json` to define the abilities the Lambda should have.
