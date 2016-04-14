@@ -145,10 +145,13 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	            MemorySize: 128
 	          },
 	          function(err, data) {
-	            if (err !== null) {
-	              callback(null, false);
-	            }
-	            else {
+	            if (err) {
+	              if (err.code === 'ResourceConflictException') {
+	                callback(null, false);
+	              } else {
+	                throw err;
+	              }
+	            } else {
 	              console.log(format('Created Function "{}" on {}!', FULL_NAME, region));
 	              callback(null, true);
 	            }
