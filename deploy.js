@@ -19,7 +19,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	var POLICY = fs.readFileSync(path.join(RESOURCE_DIR, 'execution-policy.json')).toString();
 	var TRUST = fs.readFileSync(path.join(CFN_LAMBDA_DIR, 'lambda.trust.json')).toString();
 	var LAMBDA_DESC = format('CloudFormation Custom Resource service for Custom::{name}', RESOURCE_INFO);
-	var ACCOUNT_RE = /arn:aws:iam::(.*?):user.*/;
+	var ACCOUNT_RE = /arn:aws:.*::(.*?):.*/;
 
 
 	var zip_parts = [];
@@ -38,6 +38,13 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 
 	archive.directory(RESOURCE_DIR, '');
 
+
+
+
+
+
+
+
 	archive.pipe(converter);
 
 	archive.finalize();
@@ -47,25 +54,26 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	AWS.config.region = DEFAULT_REGION;
 
 	var iam = new AWS.IAM();
-
+	var sts = new AWS.STS();
 	var deploy_zip;
 	var user_data;
 	var role_arn;
-
+	
 	function start_deploy() { // Will be emitted when the input stream has ended, ie. no more data will be provided
 	  console.log('~~~~ Deploying Lambda to all regions (' + REGIONS.join(' ') + '). ~~~~');
 	  deploy_zip = Buffer.concat(zip_parts); // Create a buffer from all the received chunks
-	  iam.getUser({}, function (err, data) {
-	    if (err) { throw err; }
+	  sts.getCallerIdentity({}, function (err, data) {
+	    if (err) { throw err }
 	    user_data = data;
+		console.log(data);
 	    handle_roles(err);
 	  })
 	}
 
 	function handle_roles(err) {
-
+		
 	  role_arn = format('arn:aws:iam::{}:role/{}',
-	    user_data.User.Arn.replace(ACCOUNT_RE, '$1'), FULL_NAME);
+	    user_data.Arn.replace(ACCOUNT_RE, '$1'), FULL_NAME);
 
 	  async.waterfall([
 	      function(callback) {
@@ -114,10 +122,10 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	    function () {
 	      console.log('~~~~ All done! Lambdas are deployed globally and ready for use by CloudFormation. ~~~~');
 	      console.log('~~~~                They are accessible to your CloudFormation at:                ~~~~');
-	      console.log(format('aws:arn:<region>:{}:function:{}', user_data.User.Arn.replace(ACCOUNT_RE, '$1'), FULL_NAME));
+	      console.log(format('aws:arn:<region>:{}:function:{}', user_data.Arn.replace(ACCOUNT_RE, '$1'), FULL_NAME));
 	      if (main_callback) main_callback(
 	      	format('aws:arn:{{}}:{}:function:{}',
-	      		user_data.User.Arn.replace(ACCOUNT_RE, '$1'),
+	      		user_data.Arn.replace(ACCOUNT_RE, '$1'),
 	      		FULL_NAME)
 	      	);
 	  });
