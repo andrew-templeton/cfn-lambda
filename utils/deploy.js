@@ -1,5 +1,9 @@
-var main = function(cfn_module, default_region, deploy_regions, main_callback){
-    // main code
+var main = function(options, main_callback){
+  // main code
+	if (!options) {
+		main_callback = options;
+		options = {};
+	}
 
 	var format = require('string-format');
 	var path = require('path');
@@ -8,14 +12,16 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	var async = require('async');
 	var archiver = require('archiver');
 
-	var DEFAULT_REGION = default_region ? default_region : 'us-east-1';
-	var REGIONS =  deploy_regions ? deploy_regions :['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1'];
+	var DEFAULT_REGION = options.defaultRegion || 'us-east-1';
+	var REGIONS =  options.deployRegions || ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1'];
 
-	var RESOURCE_DIR = cfn_module ? path.join(process.cwd(), 'node_modules', cfn_module) : path.join(__dirname, '..', '..');
-	var CFN_LAMBDA_DIR = path.join(__dirname, 'lib');
+	var RESOURCE_DIR = options.cfnModule ? path.join(process.cwd(), 'node_modules', options.cfnModule) : process.cwd();
+	var CFN_LAMBDA_DIR = path.join(__dirname, '../lib');
 
 	var RESOURCE_INFO = require(path.join(RESOURCE_DIR, 'package.json'));
 	var FULL_NAME = format("{}-{}", RESOURCE_INFO.name, RESOURCE_INFO.version.replace(/\./g, '-'));
+	var LAMBDA_TIMEOUT = options.lambdaTimeout || 300;
+	var LAMBDA_MEMORY_SIZE = options.lambdaMemorySize || 128;
 	var POLICY = fs.readFileSync(path.join(RESOURCE_DIR, 'execution-policy.json')).toString();
 	var TRUST = fs.readFileSync(path.join(CFN_LAMBDA_DIR, 'lambda.trust.json')).toString();
 	var LAMBDA_DESC = format('CloudFormation Custom Resource service for Custom::{name}', RESOURCE_INFO);
@@ -36,14 +42,15 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 
 	console.log('Zipping Lambda bundle to buffer...');
 
-	archive.directory(RESOURCE_DIR, '');
-
-
-
-
-
-
-
+	var options = {
+		cwd: RESOURCE_DIR,
+		ignore: ["deploy/**"]
+	};
+  try {
+    var ignore = fs.readFileSync( path.join(RESOURCE_DIR, ".zipignore"), 'utf8' );
+    options.ignore = _.compact( _.flatten([options.ignore, ignore.split('\n')]) );
+  } catch (e) {}
+  archive.glob(RESOURCE_DIR + '/**/*.*', options);
 
 	archive.pipe(converter);
 
@@ -54,24 +61,23 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	AWS.config.region = DEFAULT_REGION;
 
 	var iam = new AWS.IAM();
-	var sts = new AWS.STS();
+	var sts = new AWS.STS({apiVersion: '2011-06-15'});
 	var deploy_zip;
 	var user_data;
 	var role_arn;
-	
+
 	function start_deploy() { // Will be emitted when the input stream has ended, ie. no more data will be provided
 	  console.log('~~~~ Deploying Lambda to all regions (' + REGIONS.join(' ') + '). ~~~~');
 	  deploy_zip = Buffer.concat(zip_parts); // Create a buffer from all the received chunks
 	  sts.getCallerIdentity({}, function (err, data) {
 	    if (err) { throw err }
 	    user_data = data;
-		console.log(data);
 	    handle_roles(err);
 	  })
 	}
 
 	function handle_roles(err) {
-		
+
 	  role_arn = format('arn:aws:iam::{}:role/{}',
 	    user_data.Arn.replace(ACCOUNT_RE, '$1'), FULL_NAME);
 
@@ -106,7 +112,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	            console.log("Sleeping 5 seconds for policy to propagate.");
 	            setTimeout(function() {
 	              callback();
-	            }, 
+	            },
 	            10000);
 	        });
 	      }],
@@ -131,13 +137,13 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	  });
 	}
 
-	function handle_region(region, region_callback) { 
+	function handle_region(region, region_callback) {
 
 	  var RegionAWS = require('aws-sdk');
 	  RegionAWS.config.region = region;
-	  
+
 	  var lambda = new RegionAWS.Lambda();
-	  
+
 	  console.log('Deploying Lambda to: ' + region);
 
 	  async.waterfall([
@@ -149,8 +155,8 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	            Role: role_arn,
 	            Handler: 'index.handler',
 	            Runtime: 'nodejs',
-	            Timeout: 300,
-	            MemorySize: 128
+	            Timeout: LAMBDA_TIMEOUT,
+	            MemorySize: LAMBDA_MEMORY_SIZE
 	          },
 	          function(err, data) {
 	            if (err) {
@@ -175,8 +181,8 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	            Description: LAMBDA_DESC,
 	            Role: role_arn,
 	            Handler: 'index.handler',
-	            Timeout: 300,
-	            MemorySize: 128
+	            Timeout: LAMBDA_TIMEOUT,
+	            MemorySize: LAMBDA_MEMORY_SIZE
 	          },
 	          function(err, data) {
 	            if (err !== null) {
@@ -187,7 +193,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	              callback(null, false);
 	            }
 	          });
-	        }          
+	        }
 	      },
 	      function(skip, callback) {
 	        if (skip) {
@@ -204,7 +210,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	                callback();
 	              }
 	          });
-	        }       
+	        }
 	      }
 	    ],
 	    function () {
@@ -213,10 +219,6 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	    }
 	  );
 	}
-}
-
-if (require.main === module) {
-    main(null, null, null, null);
 }
 
 module.exports = main;

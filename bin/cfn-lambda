@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+function list(val) {
+  return val.split(',').map(String);
+}
+function int(val, defaultValue) {
+  return parseInt(val) || defaultValue;
+}
+
+var program = require('commander');
+var path = require('path');
+
+program
+  .version('0.0.1')
+
+program
+  .command('deploy [module]')
+  .option('-r, --default-region [region]',   'Use default AWS Region', 'us-east-1')
+  .option('-s, --deploy-regions [regions]',  'Deployment AWS Regions', list, ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1'])
+  .option('-t, --lambda-timeout [timeout]',  'Timeout of the lambda function in seconds', int, 300)
+  .option('-m, --lambda-memory-size [size]', 'Memory of the lambda function in Mo', int, 128)
+  .action( function(cfnModule, options) {
+    options.cfnModule = cfnModule;
+    var deploy = require('../utils/deploy');
+    deploy(options);
+  });
+
+program
+  .command('zip [module]')
+  .option('-o, --output [path]', 'Path to the output zip file')
+  .action( function(cfnModule, options) {
+    var output = options.output;
+    var RESOURCE_DIR = cfnModule ? path.join(process.cwd(), 'node_modules', cfnModule) : process.cwd();
+
+    if (!output) {
+      var RESOURCE_INFO = require(path.join(process.cwd(), 'package.json'));
+      var filename = RESOURCE_INFO.name + "-" + RESOURCE_INFO.version.replace(/\./g, '-') + ".zip";
+      output = path.join(process.cwd(), 'deploy', filename);
+    }
+
+    var zip = require('../utils/zip');
+    console.log("Zipping", cfnModule, "Lambda bundle to " + output);
+    zip(RESOURCE_DIR, output, function() {
+      console.log("Zipping Finished");
+    });
+  });
+
+program.parse(process.argv);

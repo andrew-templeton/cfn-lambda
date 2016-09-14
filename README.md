@@ -7,7 +7,7 @@
 A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`.
 
 Also supports:
- - Automatic expansion of `__default__` `Properties` values into any tree or subtree of any Custom Resource utilizing `cfn-lambda` for implementation 
+ - Automatic expansion of `__default__` `Properties` values into any tree or subtree of any Custom Resource utilizing `cfn-lambda` for implementation
  - Validation of `'ResourceProperties'`
    + Using inline JSONSchema objects as `Schema`
    + Using a `SchemaPath` to JSONSchema file
@@ -20,7 +20,7 @@ Also supports:
    + Region for the Lambda
  - Array of String `TriggersReplacement` for `Resource.Properties` key strings that force delegation to resource `Create` for seamless full replacement without downtime in many cases, and forcing `UPDATE_COMPLETE_CLEANUP_IN_PROGRESS`.
  - An `SDKAlias` function generator that structures and greatly simplifies the development of custom resources that are supported by the Node.js `aws-sdk` but not supported by CloudFormation.
- 
+
 
 [This package on NPM](https://www.npmjs.com/package/cfn-lambda)  
 [This package on GitHub](https://www.github.com/andrew-templeton/cfn-lambda)
@@ -39,12 +39,7 @@ Also supports:
 
 Any custom resource using this tool as a dependency can run this deploy script from the root of the custom resource project to deploy Lambdas to all regions. Add this line to the `"scripts"` section of your `package.json` inside your repository using this module as a direct dependency:
 
-    "cfn-lambda-deploy": "node ./node_modules/cfn-lambda/deploy.js"
-
-You can also deploy the Lambdas programmatically like so:
-
-                                          (cfn-module)      (default region) (regions)  (callback)
-    node -e "require('cfn-lambda').deploy('cfn-yourmodule', 'us-east-1', ['us-east-1'], null);"
+    "cfn-lambda-deploy": "node_modules/cfn-lambda/bin/cfn-lambda deploy"
 
 You must also set up:
 
@@ -54,13 +49,25 @@ You must also set up:
   + a credentials file
   + `$AWS_ACCESS_KEY_ID` and `$AWS_SECRET_ACCESS_KEY` in your environment.
 
+For more information about `node_modules/cfn-lambda/bin/cfn-lambda`:
+
+    $ node_modules/cfn-lambda/bin/cfn-lambda -h
+
+You can exclude some file from your package by adding `.zipignore` file on `reporoot`. This file use a (glob pattern)[https://en.wikipedia.org/wiki/Glob_(programming)], an new line represent a new pattern. ex:
+
+```
+    test/**
+    README.md
+    docs/**
+    **/*.png
+```
 
 You then run this from within the repository directly depending on `cfn-lambda`:
 
     $ npm run cfn-lambda-deploy
 
 
-It should look like this: 
+It should look like this:
 
 
 ![Insta-Deploy](./ex-deploy-term.png)
@@ -72,7 +79,7 @@ It should look like this:
 
 This is a contrived example call to fully demonstrate the way to interface with the creation API.
 
-You can manually define these properties, or use `SDKAlias` for `Create`, `Update` and/or `Delete`. 
+You can manually define these properties, or use `SDKAlias` for `Create`, `Update` and/or `Delete`.
 
 
 ### Resource Lambda Generation
@@ -104,7 +111,7 @@ exports.handler = CfnLambda({
 
 ### `Environment` Convenience Property
 
-Provides convenience `Environment` values.: 
+Provides convenience `Environment` values.:
 
     var CfnLambda = require('cfn-lambda');
     // After receiving `event` and `context`...
@@ -259,7 +266,7 @@ Optional. Triggered by deep JSON object equality of the old and new parameters, 
 
 Even when short-circuiting an `Update` is a good idea, a resource provider may still need to return a set of properties for use with `Fn::GetAtt` in CloudFormation templates. This `NoUpdate` handler triggers in the special case where no settings on the resource change, allowing the developer to simultaneously skip manipulation logic while doing read operations on resources to generate the attribute sets `Fn::GetAtt` will need.
 
-``` 
+```
 // Using a custom NoUpdate for READ to supply properties
 //   for Fn::GetAtt to access in CloudFormation templates
 function NoUpdate(PhysicalResourceId, CfnResourceProperties, reply) {
@@ -305,7 +312,7 @@ In most cases, just pass `new AWS.Lambda({apiVersion: '2015-03-31'})` as the API
 
 ##### Methods
 
-Most of the `LongRunning` logic happens here. At its most configured, this subobject will have 3 properties corresponding to the normal actions: `Create`, `Update`, and `Delete`. 
+Most of the `LongRunning` logic happens here. At its most configured, this subobject will have 3 properties corresponding to the normal actions: `Create`, `Update`, and `Delete`.
 
 When you configure one of these properties, the flow of that CloudFormation action type changes - within the `reply` callback function in the corresponding normal/top-level callback you defined for the resource, `reply`-ing with success just tells `cfn-lambda` that you correctly initialized the `Create`/`Delete`/`Update` for the resource, and to start using the corresponding `LongRunning.Methods.METHOD` to ping to final completion. That is, the resource will not `COMPLETE` the action until the function you define finalizes the `SUCCESS`.
 
@@ -331,7 +338,7 @@ function CheckCreate(LongRunningContext, params, reply, notDone) {
   // params are Properties straight from CloudFomation
   // reply is callback just like in normal Create,
   //    call it with reply(errMsg) or reply(null, physicalId, AttrHash)
-  // notDone takes no parameters, use this to tell 
+  // notDone takes no parameters, use this to tell
   //   cfn-lambda to use another ping/spawn cycle and check again later
 }
 ```
@@ -349,7 +356,7 @@ function CheckUpdate(LongRunningContext, physcialId, params, oldParams, reply, n
   // reply is callback just like in normal Update,
   //    call it with reply(errMsg) or reply(null, physicalId, AttrHash)
   //    to finalize the transition and notify CloudFormation.
-  // notDone takes no parameters, use this to denote no errors and tell 
+  // notDone takes no parameters, use this to denote no errors and tell
   //   cfn-lambda to use another ping/spawn cycle and check again later
 }
 ```
@@ -366,7 +373,7 @@ function CheckDelete(LongRunningContext, physcialId, params, reply, notDone) {
   // reply is callback just like in normal Delete,
   //    call it with reply(errMsg) or reply(null, physicalId, AttrHash)
   //    to finalize the transition and notify CloudFormation.
-  // notDone takes no parameters, use this to denote no errors and tell 
+  // notDone takes no parameters, use this to denote no errors and tell
   //   cfn-lambda to use another ping/spawn cycle and check again later
 }
 ```
@@ -400,7 +407,7 @@ var AnAWSApi = new AWS.SomeNamespace();
 var CfnLambda = require('cfn-lambda');
 // Then used as the Create property as defined in Usage above
 var MyAliasActionName = CfnLambda.SDKAlias({ // Like Create, Update, Delete
-  returnPhysicalId: 'KeyFromSDKReturn' || function(data) { return 'customValue'; }, 
+  returnPhysicalId: 'KeyFromSDKReturn' || function(data) { return 'customValue'; },
   downcase: boolean, // Downcase first letter of all top-level params from CloudFormation
   api: AnAWSApi, // REQUIRED
   method: 'methodNameInSDK', // REQUIRED
@@ -427,7 +434,7 @@ var MyAliasActionName = CfnLambda.SDKAlias({ // Like Create, Update, Delete
     'Fn::GetAttr'
   ],
   ignoreErrorCodes: [IntegerCodeToIgnore, ExWouldBe404ForDeleteOps],
-  physicalIdAs: 'UsePhysicalIdAsThisKeyInSDKCall', 
+  physicalIdAs: 'UsePhysicalIdAsThisKeyInSDKCall',
 });
 
 // Then...
@@ -444,7 +451,7 @@ Sometimes it is advantageous to be able to reuse JSON objects or fragments of JS
 
 Any module using `cfn-lambda` supports `__default__` property expansion. `__default__` can be added anywhere in the `Properties` object for a resource, with `__default__` containing an arbitrary `JSON/String/Array/null/Number` value serialized using `toBase64(JSON.stringify(anyObject))`. `cfn-lambda` will expand these properties *before* hitting any validation checks, by running `JSON.parse(fromBase64(encodedDefault))` recursively, and overwriting any values in the `__default__` tree with those actually set on the `Properties` object.
 
-The best example of this is the `cfn-variable` module's `example.template.json`, wherein a very large `RestApi` is created with over a large repeated subtree of `Resource` objects. `cfn-variable` is a custom resource that takes any value and serializes it using `toBase64(JSON.stringify(anyValue))`, making it a perfect fit for this behavior. 
+The best example of this is the `cfn-variable` module's `example.template.json`, wherein a very large `RestApi` is created with over a large repeated subtree of `Resource` objects. `cfn-variable` is a custom resource that takes any value and serializes it using `toBase64(JSON.stringify(anyValue))`, making it a perfect fit for this behavior.
 
 In the example in `cfn-variable`, this technique is used to create 120 `Resource` objects in under 15 seconds (this example uses less):
 ```

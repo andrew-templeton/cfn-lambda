@@ -51,7 +51,7 @@ function CfnLambdaFactory(resourceDefinition) {
         longRunningConf.PingInSeconds &&
         longRunningConf.MaxPings &&
         longRunningConf.LambdaApi &&
-        longRunningConf.Methods && 
+        longRunningConf.Methods &&
         'function' === typeof longRunningConf.Methods[RequestType]) {
           console.log('Long running configurations found, ' +
             'providing this callback instead of the normal reply ' +
@@ -149,7 +149,7 @@ function CfnLambdaFactory(resourceDefinition) {
         });
       }, resourceDefinition.LongRunning.PingInSeconds * 1000);
     };
-    
+
     var invalidation = ValidationCheck(Params, {
       Validate: resourceDefinition.Validate,
       Schema: resourceDefinition.Schema,
@@ -163,7 +163,7 @@ function CfnLambdaFactory(resourceDefinition) {
       }
       console.log('cfn-lambda: Found an invalidation.');
       return NormalReply(invalidation);
-    } 
+    }
     if (RequestType === 'Create') {
       console.log('cfn-lambda: Delegating to Create handler.');
       return resourceDefinition.Create(Params, replyOrLongRunning('Create'));
@@ -223,12 +223,12 @@ function CfnLambdaFactory(resourceDefinition) {
         });
       }
     }
-    
+
 
     function sendResponse(response) {
 
       var responseBody = JSON.stringify(response);
-      
+
       console.log('RESPONSE: %j', response);
 
       var https = require('https');
@@ -258,14 +258,14 @@ function CfnLambdaFactory(resourceDefinition) {
           // noop
         });
         response.on('end', function() {
-          // Tell AWS Lambda that the function execution is done  
+          // Tell AWS Lambda that the function execution is done
           context.done();
         });
       });
 
       request.on('error', function(error) {
         console.log('sendResponse Error:\n', error);
-        // Tell AWS Lambda that the function execution is done  
+        // Tell AWS Lambda that the function execution is done
         context.done();
       });
 
@@ -298,5 +298,5 @@ function getEnvironment(context) {
   };
 }
 
-module.exports.deploy = require(path.resolve(__dirname,
-  'deploy'));
+module.exports.deploy = require(path.resolve(__dirname, 'utils/deploy'));
+module.exports.zip = require(path.resolve(__dirname, 'utils/zip'));
