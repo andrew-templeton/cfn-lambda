@@ -37,7 +37,7 @@ program
     var RESOURCE_DIR = cfnModule ? path.join(process.cwd(), 'node_modules', cfnModule) : process.cwd();
 
     if (!output) {
-      var RESOURCE_INFO = require(path.join(process.cwd(), 'package.json'));
+      var RESOURCE_INFO = require(path.join(RESOURCE_DIR, 'package.json'));
       var filename = RESOURCE_INFO.name + "-" + RESOURCE_INFO.version.replace(/\./g, '-') + ".zip";
       output = path.join(process.cwd(), 'deploy', filename);
     }
