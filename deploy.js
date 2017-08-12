@@ -58,7 +58,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	var deploy_zip;
 	var user_data;
 	var role_arn;
-	
+
 	function start_deploy() { // Will be emitted when the input stream has ended, ie. no more data will be provided
 	  console.log('~~~~ Deploying Lambda to all regions (' + REGIONS.join(' ') + '). ~~~~');
 	  deploy_zip = Buffer.concat(zip_parts); // Create a buffer from all the received chunks
@@ -71,7 +71,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	}
 
 	function handle_roles(err) {
-		
+
 	  role_arn = format('arn:aws:iam::{}:role/{}',
 	    user_data.Arn.replace(ACCOUNT_RE, '$1'), FULL_NAME);
 
@@ -106,7 +106,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	            console.log("Sleeping 5 seconds for policy to propagate.");
 	            setTimeout(function() {
 	              callback();
-	            }, 
+	            },
 	            10000);
 	        });
 	      }],
@@ -131,13 +131,13 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	  });
 	}
 
-	function handle_region(region, region_callback) { 
+	function handle_region(region, region_callback) {
 
 	  var RegionAWS = require('aws-sdk');
 	  RegionAWS.config.region = region;
-	  
+
 	  var lambda = new RegionAWS.Lambda();
-	  
+
 	  console.log('Deploying Lambda to: ' + region);
 
 	  async.waterfall([
@@ -148,7 +148,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	            Description: LAMBDA_DESC,
 	            Role: role_arn,
 	            Handler: 'index.handler',
-	            Runtime: 'nodejs4.3',
+	            Runtime: 'nodejs6.10',
 	            Timeout: 300,
 	            MemorySize: 128
 	          },
@@ -187,7 +187,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	              callback(null, false);
 	            }
 	          });
-	        }          
+	        }
 	      },
 	      function(skip, callback) {
 	        if (skip) {
@@ -204,7 +204,7 @@ var main = function(cfn_module, default_region, deploy_regions, main_callback){
 	                callback();
 	              }
 	          });
-	        }       
+	        }
 	      }
 	    ],
 	    function () {
