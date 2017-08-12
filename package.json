@@ -4,7 +4,7 @@
   "description": "CloudFormation custom resource helper for Lambda Node.js runtime",
   "main": "index.js",
   "scripts": {
-    "test": "node ./node_modules/istanbul/lib/cli cover ./node_modules/mocha/bin/_mocha"
+    "test": "node ./node_modules/istanbul/lib/cli cover -x deploy.js ./node_modules/mocha/bin/_mocha"
   },
   "repository": {
     "type": "git",
