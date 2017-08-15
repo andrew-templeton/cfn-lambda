@@ -7,7 +7,9 @@
 A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`.
 
 Also supports:
- - Automatic expansion of `__default__` `Properties` values into any tree or subtree of any Custom Resource utilizing `cfn-lambda` for implementation 
+ - Extremely simple deployments
+ - Automatic creation of CloudFormation Quick Launch links, so you can easily share your open-source Custom Resources in any region!
+ - Automatic expansion of `__default__` `Properties` values into any tree or subtree of any Custom Resource utilizing `cfn-lambda` for implementation
  - Validation of `'ResourceProperties'`
    + Using inline JSONSchema objects as `Schema`
    + Using a `SchemaPath` to JSONSchema file
@@ -20,31 +22,56 @@ Also supports:
    + Region for the Lambda
  - Array of String `TriggersReplacement` for `Resource.Properties` key strings that force delegation to resource `Create` for seamless full replacement without downtime in many cases, and forcing `UPDATE_COMPLETE_CLEANUP_IN_PROGRESS`.
  - An `SDKAlias` function generator that structures and greatly simplifies the development of custom resources that are supported by the Node.js `aws-sdk` but not supported by CloudFormation.
- 
+
 
 [This package on NPM](https://www.npmjs.com/package/cfn-lambda)  
 [This package on GitHub](https://www.github.com/andrew-templeton/cfn-lambda)
 
+## Custom Resources To Try
 
-## Examples
+Since version 2.0.0 of this tool, this supports Launch Pages, which are a simple way to share your resources. These are some you can try.
 
- - *Stable* `Custom::ApiGatewayRestApi` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-restapi) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-restapi))
- - *Stable* `Custom::ApiGatewayMethod` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-method) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method))
- - *Stable* `Custom::ApiGatewayMethodResponse` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-method-response) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method-response))
- - *Beta* `Custom::ApiGatewayDeployment` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-deployment) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-deployment))
- - *Alpha* `Custom::ApiGatewayStage` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-stage) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-stage))
+- Add Amazon Lex Slot Types as a supported CloudFormation resource [here](https://s3.amazonaws.com/cfn-lex-slot-type-006297545748-us-east-1/0-2-0.html)
+- More added soon! Just click a Launch link to install into your account.
 
+## Launch Pages
+
+Once you build a resource with this tool, if you use the `--public` setting, you can share these resources by sharing your Launch Pages. These are HTML pages hosted in S3 that the tool automatically creates during deployments. They're only accessible to the public if you specifically set `--public` during a deployment. You should only do this for open source custom resource types.
+
+These pages are accessible in all regions in which you deploy resource types to. They generally follow this link pattern: `<s3 host>/<your package name>-<your AWS account ID>-<region>/<dash-delimited-version>.html`.
+
+If you're confused, check for the HTML pages that are inserted into the S3 buckets deployed by this tool during deploys.
+
+
+## Source Code Examples
+
+  The "old" resources below work, they just are now supported by built-in CloudFormation resource types. They still are good examples of how to implement.
+
+ - *Stable* `Custom::LexSlotType` ([GitHub](https://github.com/andrew-templeton/cfn-lex-slot-type) / [NPM](https://www.npmjs.com/package/cfn-lex-slot-type))
+ - *Stable, old* `Custom::ApiGatewayRestApi` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-restapi) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-restapi))
+ - *Stable, old* `Custom::ApiGatewayMethod` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-method) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method))
+ - *Stable, old* `Custom::ApiGatewayMethodResponse` ([GitHub](https://github.com/andrew-templeton/cfn-api-gateway-method-response) / [NPM](https://www.npmjs.com/package/cfn-api-gateway-method-response))
+ - *Stable, old, uses LongRunning configurations correctly* `Custom::ElasticSearchServiceDomain` ([GitHub](https://github.com/andrew-templeton/cfn-elasticsearch-domain) / [NPM](https://www.npmjs.com/package/cfn-elasticsearch-domain))
+
+## Call For Contributions
+
+Hey you! Are you an AWS automation engineer? I'd love if you'd author open-source resources with this tool. Just submit a PR to this page for a *specific tag* on your repository, and I'll review it and add it to the page.
+
+Furthermore, if you want to help style the generated HTML in the launcher pages, I'd love help with that too :)
+
+Feel free to tweet me about involvement too: [@ayetempleton](https://twitter.com/ayetempleton) thanks!
 
 ## Deployment of Lambdas
 
-Any custom resource using this tool as a dependency can run this deploy script from the root of the custom resource project to deploy Lambdas to all regions. Add this line to the `"scripts"` section of your `package.json` inside your repository using this module as a direct dependency:
+Any custom resource using this tool as a dependency can run deploy scripts from the root of the custom resource project to deploy Lambdas to all regions.
 
-    "cfn-lambda-deploy": "node ./node_modules/cfn-lambda/deploy.js"
+To do this most simply, add this line to the `"scripts"` section of your `package.json` inside your repository using this module as a direct dependency:
 
-You can also deploy the Lambdas programmatically like so:
+    "deploy": "node ./node_modules/cfn-lambda/deploy.js --allregions --logs"
 
-                                          (cfn-module)      (default region) (regions)  (callback)
-    node -e "require('cfn-lambda').deploy('cfn-yourmodule', 'us-east-1', ['us-east-1'], null);"
+This will deploy your custom resource to *all regions*. If you want to customize this behavior, use the options below. These options also apply to using the `deploy.js` script, as well.
+
+You can also deploy the Lambdas programmatically from JS by importing the module: `require('cfn-lambda')`. The same options that work on the command line below work as values on an option hash: `require('cfn-lambda')(options, callback)`.
 
 You must also set up:
 
@@ -54,25 +81,73 @@ You must also set up:
   + a credentials file
   + `$AWS_ACCESS_KEY_ID` and `$AWS_SECRET_ACCESS_KEY` in your environment.
 
+You then run this from within the repository directly depending on `cfn-lambda` (your custom resource implementation using this package):
 
-You then run this from within the repository directly depending on `cfn-lambda`:
-
-    $ npm run cfn-lambda-deploy
-
-
-It should look like this: 
+      $ npm run deploy
 
 
-![Insta-Deploy](./ex-deploy-term.png)
+Again, this will, if you used the suggested `package.json` edit to use the `deploy.js` inside this repo, deploy your custom resource implementation to all regions using some default settings. Please read the below options, as you may want to restrict deployment to only a couple regions. You might want to do this if your custom resource uses AWS services only available in a smaller subset of regions than Lambda is available in.
 
+### Options
 
+When using the module in JS, a simple hash is passed in as the first argument. When on the command line, boolean parameters are set to `true` with `--<argname>`. Parameters needing a value are set with `--<argname> <argvalue>`.
+
+###### `account`
+
+Used to specify the AWS Account ID to launch the systems into. By default, is the account associated with the Role or User currently invoking the script. Useful when a cross-account role is being used.
+
+###### `alias`
+
+Instead of deploying the systems with this naming pattern: `<your package name>-<your package version>`, it replaces the package name: `<specified alias>-<your package version>`.
+
+###### `allregions`
+
+Causes your custom resource to be deployed on all regions supporting AWS Lambda. `false` by default.
+
+###### `logs`
+
+Makes the deployment system log to STDOUT. Defaults to false when used via JS as a module, and defaults to `true` on CLI. You can turn CLI logging off with the `--quiet` option.
+
+###### `module`
+
+Sets the tool to deploy the custom service in the module you provide, relative to the current working directory. For example, if this package, and your package using `cfn-lambda` are both dependencies of a project, from that project's root, set `--module <custom resource to deploy>`. The `--path` argument takes precedence if both `--module` and `--path` are defined.
+
+###### `path`
+
+The tool will deploy the `cfn-lambda`-based custom resource you have defined to use the provided path. Best used when `cfn-lambda` is not in your project's `node_modules` directory. If you do not provide `--path` or `--module`, the system assumes that `cfn-lambda` is in the `node_modules` directory of your project, and thus uses this `--path`: `cfn-lambda/../../` (assumes you're using `cfn-lambda` as a normal `node_modules` dependency of your custom resource project directory).
+
+###### `public`
+
+Sets the Quick Launch Page to be publicly accessible, as well as the Lambda function code zip bundle for your custom resource type. Defaults to `false`.
+
+Setting this to `true` if you are an open source software author will allow anyone to install your custom resources without needing to run this installation script, just by clicking a link on the browser, in the HTML page this tool generates for you in your S3 buckets in each region you have this script run on. Bear in mind, that you will be responsible for the AWS fees associated with others accessing your bucket.
+
+###### `quiet`
+
+Forces logs off, on both CLI and with JS module usage. Takes precedence over `--logs`, so use this to make your CLI invocations stop producing logs. Defaults to `false`.
+
+###### `regions`
+
+Sets the AWS regions to deploy your custom resource type to. Defaults to the value of `$AWS_REGION` in your environment, or none, if you do not set `$AWS_REGION`.
+
+This value is ignored if you set `--allregions`.
+
+On the CLI, values are passed in comma-delimited, with no spaces, like `us-east-1,us-east-2`. When using the module via JS, pass this value in as a plain JavaScript array.
+
+###### `rollback`
+
+Setting this value to `false` prevents the CloudFormation stacks this tool uses to deploy from rolling back when any errors occur during initial creation. On the CLI, the value must be exactly `false`. With module-style usage in JS, any falsey value will achieve the same effect. Defaults to `true`, thus allowing any stacks with failures during creation to roll back.
+
+###### `version`
+
+Instead of deploying the systems with this naming pattern: `<your package name>-<your package version>`, it replaces the package version: `<your package name>-<specified version>`. Technically, it does not have to be a number, but using the format `x-y-z` is strongly suggested.
 
 
 ## Usage
 
 This is a contrived example call to fully demonstrate the way to interface with the creation API.
 
-You can manually define these properties, or use `SDKAlias` for `Create`, `Update` and/or `Delete`. 
+You can manually define these properties, or use `SDKAlias` for `Create`, `Update` and/or `Delete`.
 
 
 ### Resource Lambda Generation
@@ -104,7 +179,7 @@ exports.handler = CfnLambda({
 
 ### `Environment` Convenience Property
 
-Provides convenience `Environment` values.: 
+Provides convenience `Environment` values.:
 
     var CfnLambda = require('cfn-lambda');
     // After receiving `event` and `context`...
@@ -259,7 +334,7 @@ Optional. Triggered by deep JSON object equality of the old and new parameters, 
 
 Even when short-circuiting an `Update` is a good idea, a resource provider may still need to return a set of properties for use with `Fn::GetAtt` in CloudFormation templates. This `NoUpdate` handler triggers in the special case where no settings on the resource change, allowing the developer to simultaneously skip manipulation logic while doing read operations on resources to generate the attribute sets `Fn::GetAtt` will need.
 
-``` 
+```
 // Using a custom NoUpdate for READ to supply properties
 //   for Fn::GetAtt to access in CloudFormation templates
 function NoUpdate(PhysicalResourceId, CfnResourceProperties, reply) {
@@ -305,7 +380,7 @@ In most cases, just pass `new AWS.Lambda({apiVersion: '2015-03-31'})` as the API
 
 ##### Methods
 
-Most of the `LongRunning` logic happens here. At its most configured, this subobject will have 3 properties corresponding to the normal actions: `Create`, `Update`, and `Delete`. 
+Most of the `LongRunning` logic happens here. At its most configured, this subobject will have 3 properties corresponding to the normal actions: `Create`, `Update`, and `Delete`.
 
 When you configure one of these properties, the flow of that CloudFormation action type changes - within the `reply` callback function in the corresponding normal/top-level callback you defined for the resource, `reply`-ing with success just tells `cfn-lambda` that you correctly initialized the `Create`/`Delete`/`Update` for the resource, and to start using the corresponding `LongRunning.Methods.METHOD` to ping to final completion. That is, the resource will not `COMPLETE` the action until the function you define finalizes the `SUCCESS`.
 
@@ -331,7 +406,7 @@ function CheckCreate(LongRunningContext, params, reply, notDone) {
   // params are Properties straight from CloudFomation
   // reply is callback just like in normal Create,
   //    call it with reply(errMsg) or reply(null, physicalId, AttrHash)
-  // notDone takes no parameters, use this to tell 
+  // notDone takes no parameters, use this to tell
   //   cfn-lambda to use another ping/spawn cycle and check again later
 }
 ```
@@ -349,7 +424,7 @@ function CheckUpdate(LongRunningContext, physcialId, params, oldParams, reply, n
   // reply is callback just like in normal Update,
   //    call it with reply(errMsg) or reply(null, physicalId, AttrHash)
   //    to finalize the transition and notify CloudFormation.
-  // notDone takes no parameters, use this to denote no errors and tell 
+  // notDone takes no parameters, use this to denote no errors and tell
   //   cfn-lambda to use another ping/spawn cycle and check again later
 }
 ```
@@ -366,7 +441,7 @@ function CheckDelete(LongRunningContext, physcialId, params, reply, notDone) {
   // reply is callback just like in normal Delete,
   //    call it with reply(errMsg) or reply(null, physicalId, AttrHash)
   //    to finalize the transition and notify CloudFormation.
-  // notDone takes no parameters, use this to denote no errors and tell 
+  // notDone takes no parameters, use this to denote no errors and tell
   //   cfn-lambda to use another ping/spawn cycle and check again later
 }
 ```
@@ -400,7 +475,7 @@ var AnAWSApi = new AWS.SomeNamespace();
 var CfnLambda = require('cfn-lambda');
 // Then used as the Create property as defined in Usage above
 var MyAliasActionName = CfnLambda.SDKAlias({ // Like Create, Update, Delete
-  returnPhysicalId: 'KeyFromSDKReturn' || function(data) { return 'customValue'; }, 
+  returnPhysicalId: 'KeyFromSDKReturn' || function(data) { return 'customValue'; },
   downcase: boolean, // Downcase first letter of all top-level params from CloudFormation
   api: AnAWSApi, // REQUIRED
   method: 'methodNameInSDK', // REQUIRED
@@ -427,7 +502,7 @@ var MyAliasActionName = CfnLambda.SDKAlias({ // Like Create, Update, Delete
     'Fn::GetAttr'
   ],
   ignoreErrorCodes: [IntegerCodeToIgnore, ExWouldBe404ForDeleteOps],
-  physicalIdAs: 'UsePhysicalIdAsThisKeyInSDKCall', 
+  physicalIdAs: 'UsePhysicalIdAsThisKeyInSDKCall',
 });
 
 // Then...
@@ -444,7 +519,7 @@ Sometimes it is advantageous to be able to reuse JSON objects or fragments of JS
 
 Any module using `cfn-lambda` supports `__default__` property expansion. `__default__` can be added anywhere in the `Properties` object for a resource, with `__default__` containing an arbitrary `JSON/String/Array/null/Number` value serialized using `toBase64(JSON.stringify(anyObject))`. `cfn-lambda` will expand these properties *before* hitting any validation checks, by running `JSON.parse(fromBase64(encodedDefault))` recursively, and overwriting any values in the `__default__` tree with those actually set on the `Properties` object.
 
-The best example of this is the `cfn-variable` module's `example.template.json`, wherein a very large `RestApi` is created with over a large repeated subtree of `Resource` objects. `cfn-variable` is a custom resource that takes any value and serializes it using `toBase64(JSON.stringify(anyValue))`, making it a perfect fit for this behavior. 
+The best example of this is the `cfn-variable` module's `example.template.json`, wherein a very large `RestApi` is created with over a large repeated subtree of `Resource` objects. `cfn-variable` is a custom resource that takes any value and serializes it using `toBase64(JSON.stringify(anyValue))`, making it a perfect fit for this behavior.
 
 In the example in `cfn-variable`, this technique is used to create 120 `Resource` objects in under 15 seconds (this example uses less):
 ```
