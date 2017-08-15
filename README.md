@@ -67,7 +67,7 @@ Any custom resource using this tool as a dependency can run deploy scripts from 
 
 To do this most simply, add this line to the `"scripts"` section of your `package.json` inside your repository using this module as a direct dependency:
 
-    "cfn-lambda-deploy": "node ./node_modules/cfn-lambda/deploy.js --allregions --logs"
+    "deploy": "node ./node_modules/cfn-lambda/deploy.js --allregions --logs"
 
 This will deploy your custom resource to *all regions*. If you want to customize this behavior, use the options below. These options also apply to using the `deploy.js` script, as well.
 
@@ -81,10 +81,12 @@ You must also set up:
   + a credentials file
   + `$AWS_ACCESS_KEY_ID` and `$AWS_SECRET_ACCESS_KEY` in your environment.
 
-You then run this from within the repository directly depending on `cfn-lambda`:
+You then run this from within the repository directly depending on `cfn-lambda` (your custom resource implementation using this package):
 
-      $ npm run cfn-lambda-deploy
+      $ npm run deploy
 
+
+Again, this will, if you used the suggested `package.json` edit to use the `deploy.js` inside this repo, deploy your custom resource implementation to all regions using some default settings. Please read the below options, as you may want to restrict deployment to only a couple regions. You might want to do this if your custom resource uses AWS services only available in a smaller subset of regions than Lambda is available in.
 
 ### Options
 
