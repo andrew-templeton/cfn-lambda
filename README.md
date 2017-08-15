@@ -31,7 +31,7 @@ Also supports:
 
 Since version 2.0.0 of this tool, this supports Launch Pages, which are a simple way to share your resources. These are some you can try.
 
-- Add Amazon Lex Slot Types as a supported CloudFormation resource [here](https://s3.amazonaws.com/cfn-lex-slot-type-006297545748-us-east-1/0-2-0.html)
+- Add Amazon Lex Slot Types as a supported CloudFormation resource [here](https://s3.amazonaws.com/cfn-lex-slot-type-006297545748-us-east-1/1-0-1.html)
 - More added soon! Just click a Launch link to install into your account.
 
 ## Launch Pages
