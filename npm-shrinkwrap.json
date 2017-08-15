@@ -1,6 +1,6 @@
 {
   "name": "cfn-lambda",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "dependencies": {
     "archiver": {
       "version": "0.21.0",
@@ -153,7 +153,7 @@
     },
     "nano-argv": {
       "version": "1.0.2",
-      "from": "nano-argv@latest",
+      "from": "nano-argv@>=1.0.2 <2.0.0",
       "resolved": "https://registry.npmjs.org/nano-argv/-/nano-argv-1.0.2.tgz"
     },
     "node-int64": {
