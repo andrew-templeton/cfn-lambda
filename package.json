@@ -1,8 +1,8 @@
 {
   "name": "cfn-lambda",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "CloudFormation custom resource helper for Lambda Node.js runtime",
-  "main": "deploy.js",
+  "main": "index.js",
   "scripts": {
     "test": "node ./node_modules/istanbul/lib/cli cover -x deploy.js ./node_modules/mocha/bin/_mocha"
   },
