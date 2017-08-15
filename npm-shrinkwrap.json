@@ -1,6 +1,6 @@
 {
   "name": "cfn-lambda",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "dependencies": {
     "archiver": {
       "version": "0.21.0",
