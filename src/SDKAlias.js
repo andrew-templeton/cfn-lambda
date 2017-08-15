@@ -21,7 +21,7 @@ module.exports = function(options) {
         break;
       default:
         throw new Error('Could not determine cfn-lambda ' +
-          'SDKAlias method signature at runtime.'); 
+          'SDKAlias method signature at runtime.');
     }
   };
 };
@@ -125,8 +125,13 @@ function forcePaths(params, pathSet, translator) {
   pathSet.forEach(function(path) {
     var pathTokens = path.split('.');
     var lastToken = pathTokens.pop();
-    var intermediate = pathTokens.reduce(function(obj, key) {
-      return obj == null 
+    var intermediate = pathTokens.reduce(function(obj, key, index) {
+      if ('*' === key) {
+        return forcePaths(obj, Object.keys(obj).map(indexOrElement => {
+          return [indexOrElement].concat(pathTokens.slice(index + 1)).concat(lastToken).join('.')
+        }), translator)
+      }
+      return obj == null
         ? undefined
         : obj[key];
     }, params);
