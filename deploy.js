@@ -1,222 +1,361 @@
-var main = function(cfn_module, default_region, deploy_regions, main_callback){
-    // main code
 
-	var format = require('string-format');
-	var path = require('path');
-	var fs = require('fs');
-	var stream = require('stream');
-	var async = require('async');
-	var archiver = require('archiver');
+const archiver = require('archiver')
+const async = require('async')
+const AWS = require('aws-sdk')
+const fs = require('fs')
+const nanoArgv = require('nano-argv')
+const path = require('path')
+const stream = require('stream')
 
-	var DEFAULT_REGION = default_region ? default_region : 'us-east-1';
-	var REGIONS =  deploy_regions ? deploy_regions :['us-east-1', 'us-west-2', 'eu-west-1', 'ap-northeast-1'];
+const regions = require(path.resolve(__dirname, 'lib', 'lambda.regions.json'))
+const template = require(path.resolve(__dirname, 'lib', 'cfn-template.json'))
 
-	var RESOURCE_DIR = cfn_module ? path.join(process.cwd(), 'node_modules', cfn_module) : path.join(__dirname, '..', '..');
-	var CFN_LAMBDA_DIR = path.join(__dirname, 'lib');
+const defaults = {
+  account: null,
+  alias: null,
+  allregions: false,
+  logs: false,
+  module: null,
+  path: null,
+  public: false,
+  quiet: false,
+  regions: process.env.AWS_REGION || '',
+  rollback: true,
+  version: null
+}
 
-	var RESOURCE_INFO = require(path.join(RESOURCE_DIR, 'package.json'));
-	var FULL_NAME = format("{}-{}", RESOURCE_INFO.name, RESOURCE_INFO.version.replace(/\./g, '-'));
-	var POLICY = fs.readFileSync(path.join(RESOURCE_DIR, 'execution-policy.json')).toString();
-	var TRUST = fs.readFileSync(path.join(CFN_LAMBDA_DIR, 'lambda.trust.json')).toString();
-	var LAMBDA_DESC = format('CloudFormation Custom Resource service for Custom::{name}', RESOURCE_INFO);
-	var ACCOUNT_RE = /arn:aws:.*::(.*?):.*/;
+AWS.config.region = process.env.AWS_REGION || 'us-east-1'
 
+module.exports = CfnResourceDeploy
 
-	var zip_parts = [];
+if (!module.parent) {
+  defaults.logs = true
+  const opts = nanoArgv(defaults)
+  opts.regions = opts.regions.split(',')
+  CfnResourceDeploy(opts, (err, results) => {
+    if (err) {
+      console.error('')
+    }
+  })
+}
 
-	var archive = archiver('zip');
+function CfnResourceDeploy (options, deployDone) {
+  options = options || {}
+  const log = logger('log')
+  const error = logger('error')
+  const resourceTypeDir = options.path
+    ? path.resolve(options.path)
+    : options.module
+      ? path.resolve(process.cwd(), 'node_modules', options.module)
+      : path.resolve(__dirname, '..', '..')
+  const resourceTypeInfo = require(path.resolve(resourceTypeDir, 'package.json'))
+  const resourceTypeName = options.alias || resourceTypeInfo.name
+  const resourceTypeVersion = options.version || resourceTypeInfo.version.replace(/\./g, '-')
+  const policy = require(path.resolve(resourceTypeDir, 'execution-policy.json'))
+  template.Resources.ServiceLambdaRolePolicy.Properties.PolicyDocument = policy
+  template.Description = `Custom resource type installer stack for ${resourceTypeName}-${resourceTypeVersion}`
 
+  log('Zipping code bundle...')
+  zip(resourceTypeDir, (err, zippedCodeBuffer) => {
+    if (err) {
+      error('Fatal error: Could not zip: ')
+      error(err)
+      return deployDone(err)
+    }
+    log('Zip complete, acquiring account ID...')
+    getAccountId((err, accountId) => {
+      if (err) {
+        error('Fatal error: Could not acquire account ID (set manually with --account): ')
+        error(err)
+        return deployDone(err)
+      }
+      log(`Account ID set to ${accountId}`)
+      options.account = accountId
+      log('Deploying region set: ')
+      if (options.allregions) {
+        options.regions = regions.map(region => {
+          return region.identifier
+        })
+      }
+      log(options.regions)
+      async.each(options.regions, deployRegion, (err) => {
+        if (err) {
+          error('Problem deploying to the regions:')
+          error(err)
+          return deployDone(err)
+        }
+        log('Finished deploying to regions. Your custom resource is ready with ServiceToken:')
+        log(`aws:arn:<region>:${options.account}:function:${resourceTypeName}-${resourceTypeVersion}`)
+        deployDone()
+      })
+    })
+    function deployRegion (region, regionDone) {
+      // Make bucket
+      // Upload function code
+      // Upload cloudformation template
+      // Upload launcher
+      // Invoke CloudFormation
+      // Wait for finish
+      async.waterfall([
+        upsertBucket,
+        uploadLambdaFunctionCode,
+        uploadCloudFormationTemplate,
+        uploadLauncherPage,
+        invokeCloudFormation,
+        // waitOnCloudFormation
+      ], function (err, result) {
+        if (err) {
+          error(`${region} - ERROR with deploy: `)
+          error(err)
+          return regionDone(err)
+        }
+        log(`${region} - Finished deploying region.`)
+        regionDone()
+      })
+      function upsertBucket (bucketDone) {
+        const RegionalAWS = require('aws-sdk')
+        RegionalAWS.config.region = region
+        const regionalS3 = new RegionalAWS.S3()
+        const bucketName = getBucketName(region)
+        log(`${region} - Upserting bucket ${bucketName}...`)
+        regionalS3.createBucket({
+          Bucket: bucketName,
+        }, (err, data) => {
+          if (err && err.code !='BucketAlreadyOwnedByYou') {
+            error(`${region} - ERROR deploying regional bucket:`)
+            error(err)
+            return bucketDone(err)
+          }
+          log(`${region} - Upserted regional bucket: ${bucketName}`)
+          if (!options.public) {
+            log(`${region} - Completed deploying regional bucket: ${bucketName}`)
+            return bucketDone()
+          }
+          log(`${region} - Updating bucket policy to public...`)
+          regionalS3.putBucketPolicy({
+            Bucket: bucketName,
+            Policy: JSON.stringify({
+              "Version":"2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "AddPerm",
+                  "Effect": "Allow",
+                  "Principal": "*",
+                  "Action": [
+                    "s3:GetObject"
+                  ],
+                  "Resource": [
+                    `arn:aws:s3:::${bucketName}/*`
+                  ]
+                }
+              ]
+            })
+          }, (err, data) => {
+            if (err) {
+              error(`ERROR setting bucket policy to public:`)
+              error(err)
+              return bucketDone(err)
+            }
+            log(`${region} - Completed putting public bucket policy on regional bucket: ${bucketName}`)
+            log(`${region} - Completed deploying regional bucket: ${bucketName}`)
+            bucketDone()
+          })
+        })
+      }
+      function uploadLambdaFunctionCode (codeUploadDone) {
+        const RegionalAWS = require('aws-sdk')
+        RegionalAWS.config.region = region
+        const regionalS3 = new RegionalAWS.S3()
+        log(`${region} - Uploading Lambda function code...`)
+        regionalS3.putObject({
+          Bucket: getBucketName(region),
+          Key: `${resourceTypeVersion}.zip`,
+          Body: zippedCodeBuffer
+        }, (err, data) => {
+          if (err) {
+            error(`${region} - ERROR uploading Lambda code:`)
+            error(err)
+            return codeUploadDone(err)
+          }
+          log(`${region} - Lambda code uploaded.`)
+          codeUploadDone()
+        })
+      }
+      function uploadCloudFormationTemplate (cfnUploadDone) {
+        const RegionalAWS = require('aws-sdk')
+        RegionalAWS.config.region = region
+        const regionalS3 = new RegionalAWS.S3()
+        log(`${region} - Uploading CloudFormation template...`)
+        regionalS3.putObject({
+          Bucket: getBucketName(region),
+          Key: `${resourceTypeVersion}.json`,
+          Body: JSON.stringify(template)
+        }, (err, data) => {
+          if (err) {
+            error(`${region} - PROBLEM uploading CloudFormation template:`)
+            error(err)
+            return cfnUploadDone(err)
+          }
+          log(`${region} - CloudFormation template uploaded.`)
+          cfnUploadDone()
+        })
+      }
+      function uploadLauncherPage (launcherUploadDone) {
+        const RegionalAWS = require('aws-sdk')
+        RegionalAWS.config.region = region
+        const regionalS3 = new RegionalAWS.S3()
+        log(`${region} - Uploading launcher page...`)
+        regionalS3.putObject({
+          Bucket: getBucketName(region),
+          Key: `${resourceTypeVersion}.html`,
+          Body: composeHtml(),
+          ContentType: 'text/html'
+        }, (err, data) => {
+          if (err) {
+            error(`${region} - PROBLEM uploading launcher page to region:`)
+            error(err)
+            return launcherUploadDone(err)
+          }
+          log(`${region} - Launcher page uploaded.`)
+          launcherUploadDone()
+        })
+      }
+      function invokeCloudFormation (invokeComplete) {
+        const RegionalAWS = require('aws-sdk')
+        RegionalAWS.config.region = region
+        const regionalCloudFormation = new RegionalAWS.CloudFormation()
+        log(`${region} - Creating CloudFormation stack...`)
+        const cloudFormationParams = [
+          {
+            ParameterKey: 'ResourceTypeName',
+            ParameterValue: resourceTypeName
+          },
+          {
+            ParameterKey: 'ResourceTypeVersion',
+            ParameterValue: resourceTypeVersion
+          },
+          {
+            ParameterKey: 'CodeBucket',
+            ParameterValue: getBucketName(region)
+          }
+        ]
+        regionalCloudFormation.createStack({
+          StackName: `${resourceTypeName}-${resourceTypeVersion}`,
+          Capabilities: [
+            'CAPABILITY_IAM'
+          ],
+          DisableRollback: options.rollback === 'false' || !options.rollback,
+          Parameters: cloudFormationParams,
+          TemplateBody: JSON.stringify(template)
+        }, (err, data) => {
+          if (err) {
+            if (err.code !== 'AlreadyExistsException') {
+              error(`${region} - PROBLEM creating stack: `)
+              error(err)
+              return invokeComplete(err)
+            }
+            log(`${region} - Stack already existed, will update...`)
+            return regionalCloudFormation.updateStack({
+              StackName: `${resourceTypeName}-${resourceTypeVersion}`,
+              Capabilities: [
+                'CAPABILITY_IAM'
+              ],
+              Parameters: cloudFormationParams,
+              TemplateBody: JSON.stringify(template)
+            }, (err, data) => {
+              if (err && err.message !== 'No updates are to be performed.') {
+                error(`${region} - PROBLEM updating stack: `)
+                error(err)
+                return invokeComplete(err)
+              }
+              log(`${region} - Stack updated.`)
+              invokeComplete()
+            })
+          }
+          log(`${region} - Stack created.`)
+          invokeComplete()
+        })
+      }
+    }
+    function regionLauncherUrl(region) {
+      const s3Host = region.identifier === 'us-east-1'
+        ? 's3.amazonaws.com'
+        : `s3-${region.identifier}.amazonaws.com`
+      return `https://${region.identifier}.console.aws.amazon.com/cloudformation/home?region=${region.identifier}#/stacks/create/review?templateURL=https://${s3Host}/${getBucketName(region.identifier)}/${resourceTypeVersion}.json&stackName=${resourceTypeName}-${resourceTypeVersion}&param_ResourceTypeName=${resourceTypeName}&param_ResourceTypeVersion=${resourceTypeVersion}&param_CodeBucket=${getBucketName(region.identifier)}`
+    }
+    function composeHtml () {
+      var attributions = ''
+      if ('string' === typeof resourceTypeInfo.author) {
+        attributions += `<p>By: ${resourceTypeInfo.author}</p>`
+      }
+      if (resourceTypeInfo.description) {
+        attributions += `<p>${resourceTypeInfo.description}</p>`
+      }
+      if (resourceTypeInfo.homepage) {
+        attributions += `<p>Homepage: <a href="${resourceTypeInfo.homepage}">${resourceTypeInfo.homepage}</a></p>`
+      }
+      if (resourceTypeInfo.license) {
+        attributions += `<p>License: ${resourceTypeInfo.license}</p>`
+      }
+
+      return `<html><head><title>Deploy ${resourceTypeName} v${resourceTypeVersion}</title></head><body>` +
+        '<h1>CloudFormation Custom Resource Installer</h1>' +
+        `<h2>${resourceTypeName} v${resourceTypeVersion}</h2>` +
+        attributions +
+        '<h3>Regional Launchers</h3>' +
+        `<ul>${regions.filter(isLive).map(regionLine).join('')}</ul>` +
+        '</body></html>'
+      function regionLine(region) {
+        return `<li>${region.identifier} / ${region.name} : <a href="${regionLauncherUrl(region)}">Launch</a></li>`
+      }
+      function isLive (region) {
+        return !!~options.regions.indexOf(region.identifier)
+      }
+    }
+  })
+  function getBucketName (region) {
+    return `${resourceTypeName}-${options.account}-${region}`
+  }
+  function logger (type) {
+    return (content) => {
+      if (options.logs && !options.quiet) {
+        console[type](content)
+      }
+    }
+  }
+  function getAccountId (idDone) {
+    if (options.account) {
+      log(`Account ID was manually set as: ${options.account}`)
+      return idDone(null, options.account)
+    }
+    log('Calling sts:GetCallerIdentity to see ARN and AccountId...')
+    new AWS.STS().getCallerIdentity({}, (err, callerIdentity) => {
+      if (err) {
+        error('Could not complete sts:GetCallerIdentity.')
+        error(err)
+        return idDone(err)
+      }
+      log('Executed sts:GetCallerIdentity: ')
+      log(callerIdentity)
+      idDone(null, callerIdentity.Arn.replace(/arn:aws:.*::(.*?):.*/, '$1'))
+    })
+  }
+}
+
+function zip(zippableDir, zipDone) {
+  const zipChunks = [];
+	const archive = archiver('zip');
 	var converter = new stream.Writable({
 	  write: function (chunk, encoding, next) {
-	    zip_parts.push(chunk);
+	    zipChunks.push(chunk);
 	    next()
 	}});
-
-	converter.on('finish', start_deploy)
-
-	console.log('Zipping Lambda bundle to buffer...');
-
-	archive.directory(RESOURCE_DIR, '');
-
-
-
-
-
-
-
-
-	archive.pipe(converter);
-
-	archive.finalize();
-
-
-	var AWS = require('aws-sdk');
-	AWS.config.region = DEFAULT_REGION;
-
-	var iam = new AWS.IAM();
-	var sts = new AWS.STS();
-	var deploy_zip;
-	var user_data;
-	var role_arn;
-
-	function start_deploy() { // Will be emitted when the input stream has ended, ie. no more data will be provided
-	  console.log('~~~~ Deploying Lambda to all regions (' + REGIONS.join(' ') + '). ~~~~');
-	  deploy_zip = Buffer.concat(zip_parts); // Create a buffer from all the received chunks
-	  sts.getCallerIdentity({}, function (err, data) {
-	    if (err) { throw err }
-	    user_data = data;
-		console.log(data);
-	    handle_roles(err);
-	  })
-	}
-
-	function handle_roles(err) {
-
-	  role_arn = format('arn:aws:iam::{}:role/{}',
-	    user_data.Arn.replace(ACCOUNT_RE, '$1'), FULL_NAME);
-
-	  async.waterfall([
-	      function(callback) {
-	        iam.createRole({AssumeRolePolicyDocument: TRUST, RoleName: FULL_NAME}, function(err, data) {
-	          if (err !== null) {
-	            console.log('Created Role!');
-	            callback(null, true);
-	          }
-	          else {
-	            callback(null, false);
-	          }
-	        });
-	      },
-	      function(skip, callback) {
-	        if (skip) {
-	          callback(null);
-	        }
-	        else {
-	          iam.updateAssumeRolePolicy({PolicyDocument: TRUST, RoleName: FULL_NAME}, function(err, data) {
-	            if (err) { throw err; }
-	            else { callback(null); }
-	          });
-	        }
-	      },
-	      function(callback) {
-	        iam.putRolePolicy({PolicyDocument: POLICY, PolicyName: FULL_NAME + '_policy', RoleName: FULL_NAME},
-	          function(err, data) {
-	            if (err) { throw err; }
-	            console.log('Added Policy!');
-	            console.log("Sleeping 5 seconds for policy to propagate.");
-	            setTimeout(function() {
-	              callback();
-	            },
-	            10000);
-	        });
-	      }],
-	    handle_regions); // waterfall 1
-	  }
-
-	var handle_regions = function handle_regions() {
-	  console.log('Beginning deploy of Lambdas to Regions: ' + REGIONS.join(' '));
-	  async.each(REGIONS,
-	    function (region, region_callback) {
-	      handle_region(region, region_callback);
-	    },
-	    function () {
-	      console.log('~~~~ All done! Lambdas are deployed globally and ready for use by CloudFormation. ~~~~');
-	      console.log('~~~~                They are accessible to your CloudFormation at:                ~~~~');
-	      console.log(format('aws:arn:<region>:{}:function:{}', user_data.Arn.replace(ACCOUNT_RE, '$1'), FULL_NAME));
-	      if (main_callback) main_callback(
-	      	format('aws:arn:{{}}:{}:function:{}',
-	      		user_data.Arn.replace(ACCOUNT_RE, '$1'),
-	      		FULL_NAME)
-	      	);
-	  });
-	}
-
-	function handle_region(region, region_callback) {
-
-	  var RegionAWS = require('aws-sdk');
-	  RegionAWS.config.region = region;
-
-	  var lambda = new RegionAWS.Lambda();
-
-	  console.log('Deploying Lambda to: ' + region);
-
-	  async.waterfall([
-	      function(callback) {
-	          lambda.createFunction({
-	            Code: {ZipFile: deploy_zip},
-	            FunctionName: FULL_NAME,
-	            Description: LAMBDA_DESC,
-	            Role: role_arn,
-	            Handler: 'index.handler',
-	            Runtime: 'nodejs6.10',
-	            Timeout: 300,
-	            MemorySize: 128
-	          },
-	          function(err, data) {
-	            if (err) {
-	              if (err.code === 'ResourceConflictException') {
-	                callback(null, false);
-	              } else {
-	                throw err;
-	              }
-	            } else {
-	              console.log(format('Created Function "{}" on {}!', FULL_NAME, region));
-	              callback(null, true);
-	            }
-	        });
-	      },
-	      function(skip, callback) {
-	        if (skip) {
-	          callback(null, true);
-	        }
-	        else {
-	          lambda.updateFunctionConfiguration({
-	            FunctionName: FULL_NAME,
-	            Description: LAMBDA_DESC,
-	            Role: role_arn,
-	            Handler: 'index.handler',
-	            Timeout: 300,
-	            MemorySize: 128
-	          },
-	          function(err, data) {
-	            if (err !== null) {
-	              throw err;
-	            }
-	            else {
-	              console.log(format('Updated Function Configuration for "{}" on {}!', FULL_NAME, region));
-	              callback(null, false);
-	            }
-	          });
-	        }
-	      },
-	      function(skip, callback) {
-	        if (skip) {
-	          callback();
-	        }
-	        else {
-	          lambda.updateFunctionCode({FunctionName: FULL_NAME, ZipFile: deploy_zip},
-	            function(err, data) {
-	              if (err !== null) {
-	                throw err;
-	              }
-	              else {
-	                console.log(format('Updated Function Code for "{}" on {}!', FULL_NAME, region));
-	                callback();
-	              }
-	          });
-	        }
-	      }
-	    ],
-	    function () {
-	      console.log(format('Upserted lambda "{}" on {}!', FULL_NAME, region));
-	      region_callback();
-	    }
-	  );
-	}
+	converter.on('finish', function () {
+    zipDone(null, Buffer.concat(zipChunks))
+  })
+  converter.on('error', zipDone)
+  archive.on('error', zipDone)
+	archive.directory(zippableDir, '')
+	archive.pipe(converter)
+	archive.finalize()
 }
-
-if (require.main === module) {
-    main(null, null, null, null);
-}
-
-module.exports = main;
