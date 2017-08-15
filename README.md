@@ -88,6 +88,15 @@ You then run this from within the repository directly depending on `cfn-lambda` 
 
 Again, this will, if you used the suggested `package.json` edit to use the `deploy.js` inside this repo, deploy your custom resource implementation to all regions using some default settings. Please read the below options, as you may want to restrict deployment to only a couple regions. You might want to do this if your custom resource uses AWS services only available in a smaller subset of regions than Lambda is available in.
 
+Since this uses CloudFormation to install, you can get the ServiceToken usable in the region to begin creating resources from the Outputs and Exports of the generated stack at the `ServiceToken` key. The stack by default launches with name `<your-package-name>-<your package version>`. You can manually grab the value from the `Outputs` in that template, and use it later, or you can use `Fn::ImportValue` to directly get it in any stack.
+
+
+        "Fn::ImportValue": "<resource name>-<resource version>-ServiceToken"
+
+
+This value may change if you use the `--alias` or `--version` flags below, since the Stack name will be different.
+
+
 ### Options
 
 When using the module in JS, a simple hash is passed in as the first argument. When on the command line, boolean parameters are set to `true` with `--<argname>`. Parameters needing a value are set with `--<argname> <argvalue>`.

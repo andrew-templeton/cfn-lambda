@@ -76,5 +76,21 @@
         ]
       }
     }
+  },
+  "Outputs": {
+    "ServiceToken": {
+      "Description": "The Lambda function ARN to use for ServiceToken in Properties for any future stack resources invoking this custom resource.",
+      "Value": {
+        "Fn::GetAtt": [
+          "ServiceLambdaRole",
+          "Arn"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${ResourceTypeName}-${ResourceTypeVersion}-ServiceToken"
+        }
+      }
+    }
   }
 }
