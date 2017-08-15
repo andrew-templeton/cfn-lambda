@@ -1,6 +1,6 @@
 {
   "name": "cfn-lambda",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "dependencies": {
     "archiver": {
       "version": "0.21.0",
@@ -151,6 +151,11 @@
       "from": "minimatch@>=2.0.0 <3.0.0||>=3.0.0 <4.0.0",
       "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-3.0.4.tgz"
     },
+    "nano-argv": {
+      "version": "1.0.2",
+      "from": "nano-argv@latest",
+      "resolved": "https://registry.npmjs.org/nano-argv/-/nano-argv-1.0.2.tgz"
+    },
     "node-int64": {
       "version": "0.4.0",
       "from": "node-int64@>=0.4.0 <0.5.0",
@@ -207,11 +212,6 @@
       "version": "0.10.31",
       "from": "string_decoder@>=0.10.0 <0.11.0",
       "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-0.10.31.tgz"
-    },
-    "string-format": {
-      "version": "0.5.0",
-      "from": "string-format@>=0.5.0 <0.6.0",
-      "resolved": "https://registry.npmjs.org/string-format/-/string-format-0.5.0.tgz"
     },
     "tar-stream": {
       "version": "1.3.2",
