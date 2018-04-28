@@ -289,7 +289,7 @@ function pluck(keySet, hash) {
 }
 
 function getEnvironment(context) {
-  var parsedArn = context.invokedFunctionArn.match(/^arn:aws:lambda:(\w+-\w+-\d+):(\d+):function:(.*)$/);
+  var parsedArn = context.invokedFunctionArn.match(/^arn:aws.*:lambda:(\w+-\w+-\d+):(\d+):function:(.*)$/);
   return {
     LambdaArn: parsedArn[0],
     Region: parsedArn[1],
