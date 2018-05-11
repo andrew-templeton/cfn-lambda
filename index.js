@@ -1,16 +1,11 @@
+var https = require('https');
+var url = require('url');
 
-var path = require('path');
-
-var ValidationCheck = require(path.resolve(__dirname,
-  'src', 'validationCheck'));
-var SDKAlias = require(path.resolve(__dirname,
-  'src', 'SDKAlias'));
-var JSONDeepEquals = require(path.resolve(__dirname,
-  'src', 'JSONDeepEquals'));
-var DefaultExpander = require(path.resolve(__dirname,
-  'src', 'DefaultExpander'));
-var Composite = require(path.resolve(__dirname,
-  'src', 'Composite'));
+var ValidationCheck = require('./src/validationCheck');
+var SDKAlias = require('./src/SDKAlias');
+var JSONDeepEquals = require('./src/JSONDeepEquals');
+var DefaultExpander = require('./src/DefaultExpander');
+var Composite = require('./src/Composite');
 
 CfnLambdaFactory.SDKAlias = SDKAlias;
 CfnLambdaFactory.ValidationCheck = ValidationCheck;
@@ -231,8 +226,6 @@ function CfnLambdaFactory(resourceDefinition) {
       
       console.log('RESPONSE: %j', response);
 
-      var https = require('https');
-      var url = require('url');
       console.log('REPLYING TO: %s', event.ResponseURL);
       var parsedUrl = url.parse(event.ResponseURL);
       var options = {
@@ -298,5 +291,4 @@ function getEnvironment(context) {
   };
 }
 
-module.exports.deploy = require(path.resolve(__dirname,
-  'deploy'));
+module.exports.deploy = require('./deploy');

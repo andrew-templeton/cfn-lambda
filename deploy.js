@@ -1,14 +1,12 @@
-
 const archiver = require('archiver')
 const async = require('async')
 const AWS = require('aws-sdk')
-const fs = require('fs')
 const nanoArgv = require('nano-argv')
 const path = require('path')
 const stream = require('stream')
 
-const regions = require(path.resolve(__dirname, 'lib', 'lambda.regions.json'))
-const template = require(path.resolve(__dirname, 'lib', 'cfn-template.json'))
+const regions = require('./lib/lambda.regions.json')
+const template = require('./lib/cfn-template.json')
 
 const defaults = {
   account: null,
@@ -28,7 +26,7 @@ AWS.config.region = process.env.AWS_REGION || 'us-east-1'
 
 module.exports = CfnResourceDeploy
 
-if (!module.parent) {
+if (require.main === module) {
   defaults.logs = true
   const opts = nanoArgv(defaults)
   opts.regions = opts.regions.split(',')
