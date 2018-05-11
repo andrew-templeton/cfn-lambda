@@ -5,8 +5,7 @@ var fs = require('fs');
 var JaySchema = require('jayschema');
 var JSONSchema = new JaySchema();
 
-var metaschema = JSON.parse(fs.readFileSync(path.resolve(__dirname,
-  '..', 'lib', 'metaschema.json')).toString());
+var metaschema = require('../lib/metaschema.json');
 
 
 module.exports = function checkIfInvalid(params, validatorObject) {
