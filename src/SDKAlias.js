@@ -114,11 +114,28 @@ function isIgnorable(ignorableErrorCodes, errObject) {
 
 
 function accessFunction(key) {
-  return function(data) {
-    return data == null
-      ? undefined
-      : data[key];
+  var actualKey = key;
+  var getDataSimple = function(data) {
+    return data == null ?
+      undefined :
+      data[actualKey];
   };
+
+  function getDataRecursive(data) {
+    if (actualKey.includes('.')) {
+      console.log(`Key=${data} Key=${actualKey}`)
+      var pathTokens = actualKey.split('.'),
+        firstElem = pathTokens[0],
+        childData = data[firstElem],
+        childPath = pathTokens.slice(1).join('.');
+
+      actualKey = childPath;
+      return getDataRecursive(childData);
+    }
+    return getDataSimple(data);
+  };
+
+  return getDataRecursive;
 }
 
 function forcePaths(params, pathSet, translator) {
