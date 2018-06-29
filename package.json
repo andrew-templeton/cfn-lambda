@@ -30,7 +30,7 @@
   "dependencies": {
     "archiver": "^0.21.0",
     "async": "^1.5.2",
-    "aws-sdk": "2.97.0",
+    "aws-sdk": ">=2.266.0",
     "jayschema": "0.3.1",
     "nano-argv": "^1.0.2",
     "underscore": "^1.8.3"
