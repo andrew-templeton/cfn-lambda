@@ -2,8 +2,8 @@
 var path = require('path');
 var fs = require('fs');
 
-var JaySchema = require('jayschema');
-var JSONSchema = new JaySchema();
+var Validator = require('jsonschema').Validator;
+var JSONSchema = new Validator();
 
 var metaschema = require('../lib/metaschema.json');
 
@@ -38,7 +38,7 @@ module.exports = function checkIfInvalid(params, validatorObject) {
     } else {
       invalidations.push('FATAL: Any Lambda SchemaPath should be an Array of String.');
     }
-    
+
   }
   return invalidations.filter(function(invalidation) {
     return !!invalidation;
@@ -47,19 +47,25 @@ module.exports = function checkIfInvalid(params, validatorObject) {
 
 function jsonSchemaValidator(params, schema) {
   if (Object.prototype.toString.call(schema) === '[object Object]') {
-    if (JSONSchema.validate(schema, metaschema).length) {
+    if (JSONSchema.validate(schema, metaschema).errors.length) {
       return 'The custom resource\'s schema was an ' +
         'object, but was not valid JSONSchema v4.';
     } else {
-      return JSONSchema.validate(params, schema).map(function(err) {
-        return new TypeError('At path: ' +
-          err.instanceContext + ', had an error (' +
-          err.constraintName + '), expected ' +
-          err.constraintValue + ' but got ' + err.testedValue + '.');
-      }).join('\n');
+      const errs = JSONSchema.validate(params, schema).errors.map(function(err) {
+        // Guaranteed-order serialization w/ Array, hence weird format
+        return [
+          ['property ==>', err.property],
+          ['message ==>', err.message],
+          ['schema ==>', err.schema],
+          ['instance ==>', err.instance],
+          ['name ==>', err.name],
+          ['argument ==>', err.argument],
+          ['stack ==>', err.stack]
+        ]
+      });
+      return errs.length && JSON.stringify(errs)
     }
   } else {
     return 'FATAL: Any Lambda Schema should be a plain Object.';
   }
 }
-
