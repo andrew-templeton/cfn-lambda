@@ -504,14 +504,16 @@ var MyAliasActionName = CfnLambda.SDKAlias({ // Like Create, Update, Delete
     'TheSDKMethod',
     '**UsedBeforeMapKeys**'
   ],
-  returnKeys: [
+  returnAttrs: [
     'KeysFrom',
     'SDKReturnValue',
     'ToUseWithCfn',
-    'Fn::GetAttr'
+    'Fn::GetAttr',
+    'You.Can.Access.Nested.Properties.As.Well'
   ],
   ignoreErrorCodes: [IntegerCodeToIgnore, ExWouldBe404ForDeleteOps],
   physicalIdAs: 'UsePhysicalIdAsThisKeyInSDKCall',
+  // physicalIdAs: 'OrUseNested.Property.Using.Dot.Notation'
 });
 
 // Then...

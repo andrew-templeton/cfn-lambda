@@ -114,11 +114,27 @@ function isIgnorable(ignorableErrorCodes, errObject) {
 
 
 function accessFunction(key) {
-  return function(data) {
-    return data == null
-      ? undefined
-      : data[key];
+  var actualKey = key;
+  var getDataSimple = function(data) {
+    return data == null ?
+      undefined :
+      data[actualKey];
   };
+
+  function getDataRecursive(data) {
+    if (actualKey.includes('.')) {
+      var pathTokens = actualKey.split('.'),
+        firstElem = pathTokens[0],
+        childData = data[firstElem],
+        childPath = pathTokens.slice(1).join('.');
+
+      actualKey = childPath;
+      return getDataRecursive(childData);
+    }
+    return getDataSimple(data);
+  };
+
+  return getDataRecursive;
 }
 
 function forcePaths(params, pathSet, translator) {
@@ -187,7 +203,7 @@ function noop() {
 
 function keyFilter(includedKeySet, hash) {
   return includedKeySet.reduce(function(fHash, key) {
-    fHash[key] = hash[key];
+    fHash[key] = accessFunction(key)(hash);
     return fHash;
   }, {});
 }
