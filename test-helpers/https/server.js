@@ -26,14 +26,20 @@ var server = https.createServer(options, function(request, response) {
 });
 
 module.exports = {
+  listening: false,
   port: port,
   on: function(callback, setHandler) {
     var port = this.port;
     handler = setHandler;
-    server.listen(port, function() {
-      console.log('LISTENING TO PORT: %s', port);
+    if (!this.listening) {
+      server.listen(port, () => {
+        this.listening = true
+        console.log('LISTENING TO PORT: %s', port);
+        callback();
+      });
+    } else {
       callback();
-    });
+    }
     return this;
   }
 };
