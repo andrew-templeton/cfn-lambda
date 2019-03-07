@@ -32,8 +32,8 @@ module.exports = {
     var port = this.port;
     handler = setHandler;
     if (!this.listening) {
+      this.listening = true
       server.listen(port, () => {
-        this.listening = true
         console.log('LISTENING TO PORT: %s', port);
         callback();
       });

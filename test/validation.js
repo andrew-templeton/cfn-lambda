@@ -1,6 +1,7 @@
 
 var path = require('path');
 var assert = require('assert');
+var _ = require('underscore')
 
 var ValidationCheck = require(path.resolve(__dirname, '..', 'index')).ValidationCheck;
 
@@ -17,7 +18,7 @@ describe('Validation', function() {
     });
 
     it('should pass on a trivial Validate function', function(done) {
-      
+
       function trivialFunction() {}
       var invalidation = ValidationCheck({}, {
         Validate: trivialFunction
@@ -43,7 +44,7 @@ describe('Validation', function() {
 
     });
   });
-  
+
   describe('Bad Validation Definitions', function() {
     it('should break on non-Function Validate property', function(done) {
 
@@ -215,7 +216,7 @@ describe('Validation', function() {
     };
 
     it('should validate a good schema', function(done) {
-      
+
       var goodParams = {
         name: 'myapi',
         description: 'Foobarbazqux'
@@ -235,14 +236,13 @@ describe('Validation', function() {
       var missingName = {
         description: 'oops this should explode'
       };
-      var missingNameError = 'TypeError: At path: #, had an error ' +
-        '(required), expected name but got undefined.';
+      var missingNameError = JSON.stringify([[["property ==>","instance"],["message ==>","requires property \"name\""],["schema ==>",{"type":"object","required":["name"],"properties":{"name":{"type":"string"},"cloneFrom":{"type":"string"},"description":{"type":"string"}}}],["instance ==>",{"description":"oops this should explode"}],["name ==>","required"],["argument ==>","name"],["stack ==>","instance requires property \"name\""]]])
 
       var invalidation = ValidationCheck(missingName, {
         Schema: goodSchema
       });
 
-      assert(invalidation === missingNameError);
+      assert(_.isEqual(invalidation, missingNameError));
       done();
 
     });
@@ -253,8 +253,7 @@ describe('Validation', function() {
         name: 'Andrew Templeton',
         cloneFrom: ['not', 'a', 'string', 'oops!']
       };
-      var badCloneFromError = 'TypeError: At path: #/cloneFrom, ' +
-        'had an error (type), expected string but got array.';
+      var badCloneFromError = JSON.stringify([[["property ==>","instance.cloneFrom"],["message ==>","is not of a type(s) string"],["schema ==>",{"type":"string"}],["instance ==>",["not","a","string","oops!"]],["name ==>","type"],["argument ==>",["string"]],["stack ==>","instance.cloneFrom is not of a type(s) string"]]]);
 
       var invalidation = ValidationCheck(badCloneFrom, {
         Schema: goodSchema
@@ -276,7 +275,7 @@ describe('Validation', function() {
     ];
 
     it('should validate a good schema', function(done) {
-      
+
       var goodParams = {
         name: 'myapi',
         description: 'Foobarbazqux'
@@ -296,8 +295,7 @@ describe('Validation', function() {
       var missingName = {
         description: 'oops this should explode'
       };
-      var missingNameError = 'TypeError: At path: #, had an error ' +
-        '(required), expected name but got undefined.';
+      var missingNameError = JSON.stringify([[["property ==>","instance"],["message ==>","requires property \"name\""],["schema ==>",{"type":"object","required":["name"],"properties":{"name":{"type":"string"},"cloneFrom":{"type":"string"},"description":{"type":"string"}}}],["instance ==>",{"description":"oops this should explode"}],["name ==>","required"],["argument ==>","name"],["stack ==>","instance requires property \"name\""]]]);
 
       var invalidation = ValidationCheck(missingName, {
         SchemaPath: goodSchemaPath
@@ -314,8 +312,7 @@ describe('Validation', function() {
         name: 'Andrew Templeton',
         cloneFrom: ['not', 'a', 'string', 'oops!']
       };
-      var badCloneFromError = 'TypeError: At path: #/cloneFrom, ' +
-        'had an error (type), expected string but got array.';
+      var badCloneFromError = JSON.stringify([[["property ==>","instance.cloneFrom"],["message ==>","is not of a type(s) string"],["schema ==>",{"type":"string"}],["instance ==>",["not","a","string","oops!"]],["name ==>","type"],["argument ==>",["string"]],["stack ==>","instance.cloneFrom is not of a type(s) string"]]]);
 
       var invalidation = ValidationCheck(badCloneFrom, {
         SchemaPath: goodSchemaPath
