@@ -267,6 +267,42 @@ function Delete(RequestPhysicalID, CfnRequestParams, reply) {
 }
 ```
 
+### Async function support
+
+If your handler function is [async](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function), then your custom lambda resource may unexpectedly exit before your Promise(s) have resolved. The result of this is your CloudFormation stack hanging for up to an hour which is very undesirable behavior. You can read more about the underlying issue in this great [medium article](https://medium.com/radient-tech-blog/aws-lambda-and-the-node-js-event-loop-864e48fba49). To fix this, you can use the async counterparts of the given handler type:
+
+```
+Create -> AsyncCreate
+Update -> AsyncUpdate
+Delete -> AsyncDelete
+NoUpdate -> AsyncNoUpdate
+```
+
+This difference with the async counterparts is that there is no reply() callback. Instead, your function should return a Promise (or be marked `async`) which resolves with an object containing the `PhysicalResourceId` and `FnGetAttrsDataObj` outputs. See below example:
+
+```
+const wait = () => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      resolve();
+    }, 2000);
+  });
+};
+const createHandler = async (cfnRequestParams) => {
+  await wait();
+  return {
+    PhysicalResourceId: "yopadope",
+    FnGetAttrsDataObj: {
+      MyObj: "dopeayope"
+    }
+  };
+};
+exports.handler = cfnLambda({
+  AsyncCreate: createHandler,
+  ...
+});
+```
+
 ### Validating Properties
 
 Used before `'CREATE'`, `'UPDATE'`, or `'DELETE'` method handlers. The CloudFormation request will automatically fail if any truthy values are returned, and any `String` values returned are displayed to the template developer, to assist with resource `Properties` object correction.
