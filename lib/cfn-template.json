@@ -12,7 +12,7 @@
     },
     "LambdaRuntimeVersion": {
       "Type": "String",
-      "Default": "nodejs8.10"
+      "Default": "nodejs10.x"
     }
   },
   "Resources": {
