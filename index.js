@@ -33,7 +33,7 @@ function CfnLambdaFactory(resourceDefinition) {
 
     if(resourceDefinition.AsyncCreate) {
       if(resourceDefinition.Create) {
-        console.log('WARNING: Both Create and AsyncCreate handlers defined. Ignoring AsnycCreate');
+        console.log('WARNING: Both Create and AsyncCreate handlers defined. Ignoring AsyncCreate');
       } else {
         resourceDefinition.Create = function(CfnRequestParams, reply) {
           return ReplyAfterHandler(
