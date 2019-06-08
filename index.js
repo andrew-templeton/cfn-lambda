@@ -16,9 +16,65 @@ CfnLambdaFactory.Composite = Composite;
 CfnLambdaFactory.Module = Composite.Module;
 module.exports = CfnLambdaFactory;
 
+function ReplyAfterHandler(promise, reply) {
+  promise.then(function(response) {
+    var { PhysicalResourceId, FnGetAttrsDataObj } = response || {};
+    reply(null, PhysicalResourceId, FnGetAttrsDataObj);
+  }).catch(function(err) {
+    reply(err.message || 'Unknown error');
+  });
+};
+
 function CfnLambdaFactory(resourceDefinition) {
 
   return function CfnLambda(event, context) {
+
+    // support Async handler functions:
+
+    if(resourceDefinition.AsyncCreate) {
+      if(resourceDefinition.Create) {
+        console.log('WARNING: Both Create and AsyncCreate handlers defined. Ignoring AsyncCreate');
+      } else {
+        resourceDefinition.Create = function(CfnRequestParams, reply) {
+          return ReplyAfterHandler(
+            resourceDefinition.AsyncCreate(CfnRequestParams), reply
+          );
+        }
+      }
+    }
+    if(resourceDefinition.AsyncUpdate) {
+      if(resourceDefinition.Update) {
+        console.log('WARNING: Both Update and AsyncUpdate handlers defined. Ignoring AsyncUpdate');
+      } else {
+        resourceDefinition.Update = function(RequestPhysicalID, CfnRequestParams, OldCfnRequestParams, reply) {
+          return ReplyAfterHandler(
+            resourceDefinition.AsyncUpdate(RequestPhysicalID, CfnRequestParams, OldCfnRequestParams), reply
+          );
+        }
+      }
+    }
+    if(resourceDefinition.AsyncDelete) {
+      if(resourceDefinition.Delete) {
+        console.log('WARNING: Both Delete and AsyncDelete handlers defined. Ignoring AsyncDelete');
+      } else {
+        resourceDefinition.Delete = function(RequestPhysicalID, CfnRequestParams, reply) {
+          return ReplyAfterHandler(
+            resourceDefinition.AsyncDelete(RequestPhysicalID, CfnRequestParams), reply
+          );
+        }
+      }
+    }
+    if(resourceDefinition.AsyncNoUpdate) {
+      if(resourceDefinition.NoUpdate) {
+        console.log('WARNING: Both NoUpdate and AsyncNoUpdate handlers defined. Ignoring AsyncNoUpdate');
+      } else {
+        resourceDefinition.NoUpdate = function(PhysicalResourceId, CfnResourceProperties, reply) {
+          return ReplyAfterHandler(
+            resourceDefinition.AsyncNoUpdate(PhysicalResourceId, CfnResourceProperties), reply
+          );
+        }
+      }
+    }
 
     if (event && event.ResourceProperties) {
       delete event.ResourceProperties.ServiceToken;
@@ -46,7 +102,7 @@ function CfnLambdaFactory(resourceDefinition) {
         longRunningConf.PingInSeconds &&
         longRunningConf.MaxPings &&
         longRunningConf.LambdaApi &&
-        longRunningConf.Methods && 
+        longRunningConf.Methods &&
         'function' === typeof longRunningConf.Methods[RequestType]) {
           console.log('Long running configurations found, ' +
             'providing this callback instead of the normal reply ' +
@@ -144,7 +200,7 @@ function CfnLambdaFactory(resourceDefinition) {
         });
       }, resourceDefinition.LongRunning.PingInSeconds * 1000);
     };
-    
+
     var invalidation = ValidationCheck(Params, {
       Validate: resourceDefinition.Validate,
       Schema: resourceDefinition.Schema,
@@ -158,7 +214,7 @@ function CfnLambdaFactory(resourceDefinition) {
       }
       console.log('cfn-lambda: Found an invalidation.');
       return NormalReply(invalidation);
-    } 
+    }
     if (RequestType === 'Create') {
       console.log('cfn-lambda: Delegating to Create handler.');
       return resourceDefinition.Create(Params, replyOrLongRunning('Create'));
@@ -218,12 +274,12 @@ function CfnLambdaFactory(resourceDefinition) {
         });
       }
     }
-    
+
 
     function sendResponse(response) {
 
       var responseBody = JSON.stringify(response);
-      
+
       console.log('RESPONSE: %j', response);
 
       console.log('REPLYING TO: %s', event.ResponseURL);
@@ -251,14 +307,14 @@ function CfnLambdaFactory(resourceDefinition) {
           // noop
         });
         response.on('end', function() {
-          // Tell AWS Lambda that the function execution is done  
+          // Tell AWS Lambda that the function execution is done
           context.done();
         });
       });
 
       request.on('error', function(error) {
         console.log('sendResponse Error:\n', error);
-        // Tell AWS Lambda that the function execution is done  
+        // Tell AWS Lambda that the function execution is done
         context.done();
       });
 

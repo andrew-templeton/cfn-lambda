@@ -8,6 +8,8 @@ const stream = require('stream')
 const regions = require('./lib/lambda.regions.json')
 const template = require('./lib/cfn-template.json')
 
+const DEFAULT_RUNTIME = 'nodejs10.x'
+
 const defaults = {
   account: null,
   alias: null,
@@ -19,7 +21,8 @@ const defaults = {
   quiet: false,
   regions: process.env.AWS_REGION || '',
   rollback: true,
-  version: null
+  version: null,
+  runtime: DEFAULT_RUNTIME
 }
 
 AWS.config.region = process.env.AWS_REGION || 'us-east-1'
@@ -39,6 +42,7 @@ if (require.main === module) {
 
 function CfnResourceDeploy (options, deployDone) {
   options = options || {}
+
   const log = logger('log')
   const error = logger('error')
   const resourceTypeDir = options.path
@@ -235,6 +239,10 @@ function CfnResourceDeploy (options, deployDone) {
           {
             ParameterKey: 'CodeBucket',
             ParameterValue: getBucketName(region)
+          },
+          {
+            ParameterKey: 'LambdaRuntimeVersion',
+            ParameterValue: options.runtime || DEFAULT_RUNTIME
           }
         ]
         regionalCloudFormation.createStack({

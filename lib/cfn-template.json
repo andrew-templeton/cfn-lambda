@@ -9,6 +9,10 @@
     },
     "CodeBucket": {
       "Type": "String"
+    },
+    "LambdaRuntimeVersion": {
+      "Type": "String",
+      "Default": "nodejs10.x"
     }
   },
   "Resources": {
@@ -39,7 +43,9 @@
           ]
         },
         "Handler": "index.handler",
-        "Runtime": "nodejs6.10",
+        "Runtime": {
+          "Ref": "LambdaRuntimeVersion"
+        },
         "Timeout": 300,
         "MemorySize": 128
       }
