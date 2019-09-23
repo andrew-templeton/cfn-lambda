@@ -181,8 +181,9 @@ exports.handler = CfnLambda({
   NoUpdate: NoUpdate, // Optional
   TriggersReplacement: TriggersReplacement, // Array<String> of properties forcing Replacement
 
-  LongRunning: <see Long Running below> // Optional. Configure a lambda to last beyond 5 minutes.
+  NoEcho: true, // Optional, default is false. Masks the 'Data' Response property. See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html for more information.
 
+  LongRunning: <see Long Running below> // Optional. Configure a lambda to last beyond 5 minutes.
 });
 ```
 

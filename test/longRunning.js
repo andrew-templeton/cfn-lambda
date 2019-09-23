@@ -11,6 +11,11 @@ var CfnLambda = require(path.resolve(__dirname, '..', 'index'));
 
 
 describe('LongRunning', function() {
+
+  after(() => {
+    Server.close();
+  });
+  
   var expectedUrl = '/foo/bar/taco';
   var expectedStackId = 'fakeStackId';
   var expectedRequestId = 'fakeRequestId';

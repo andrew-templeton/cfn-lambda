@@ -41,5 +41,9 @@ module.exports = {
       callback();
     }
     return this;
+  },
+  close: function() {    
+    server.close();
+    this.listening = false;
   }
 };

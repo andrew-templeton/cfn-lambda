@@ -10,6 +10,11 @@ var CfnLambda = require(path.resolve(__dirname, '..', 'index'));
 
 
 describe('CfnLambda#Environment', function() {
+  
+  after(() => {
+    Server.close();
+  });
+
   function HollowRequest() {
     return {
       RequestType: 'Create',
