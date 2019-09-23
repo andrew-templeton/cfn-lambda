@@ -9,6 +9,11 @@ var CfnLambda = require(path.resolve(__dirname, '..', 'index'));
 
 
 describe('Severe CloudFormation Errors', function() {
+
+  after(() => {
+    Server.close();
+  });
+
   it('should still terminate lambda on signed url connection errors', function(done) {
     var expectedUrl = '/foo/bar/taco';
     var expectedStackId = 'fakeStackId';

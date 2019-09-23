@@ -7,6 +7,11 @@ var ContextStub = require(path.resolve(__dirname, '..', 'test-helpers', 'context
 var CfnLambda = require(path.resolve(__dirname, '..', 'index'));
 
 describe('Async support', function() {
+
+  after(() => {
+    Server.close();
+  });
+  
   var expectedUrl = '/foo/bar/taco';
   var expectedStackId = 'fakeStackId';
   var expectedRequestId = 'fakeRequestId';

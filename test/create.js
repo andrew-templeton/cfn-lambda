@@ -9,6 +9,11 @@ var CfnLambda = require(path.resolve(__dirname, '..', 'index'));
 
 
 describe('Create', function() {
+
+  after(() => {
+    Server.close();
+  });
+
   var expectedUrl = '/foo/bar/taco';
   var expectedStackId = 'fakeStackId';
   var expectedRequestId = 'fakeRequestId';
@@ -205,5 +210,38 @@ describe('Create', function() {
       done();
     });
 
+  });
+
+  it('Should default NoEcho to false', function(done) {
+    var CfnRequest = HollowRequest();
+    var Lambda = CfnLambda({
+      Create: function(Params, reply) {
+        reply();
+      }
+    });
+
+    Server.on(function() {
+      Lambda(CfnRequest, ContextStub);
+    }, function(cfnResponse) {
+      assert(false === cfnResponse.body.NoEcho, 'Expected NoEcho to be false');     
+      done();
+    });
+  });
+
+  it('Should set NoEcho to true', function(done) {
+    var CfnRequest = HollowRequest();
+    var Lambda = CfnLambda({
+      Create: function(Params, reply) {
+        reply();
+      },
+      NoEcho: true
+    });
+
+    Server.on(function() {
+      Lambda(CfnRequest, ContextStub);
+    }, function(cfnResponse) {
+      assert(true === cfnResponse.body.NoEcho, 'Expected NoEcho to be true');     
+      done();
+    });
   });
 });

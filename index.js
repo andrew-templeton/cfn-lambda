@@ -259,7 +259,8 @@ function CfnLambdaFactory(resourceDefinition) {
             StackId: event.StackId,
             RequestId: event.RequestId,
             LogicalResourceId: event.LogicalResourceId,
-            Data: optionalData
+            Data: optionalData,
+            NoEcho: resourceDefinition.NoEcho || false
           });
         }
         return functor({
@@ -270,7 +271,8 @@ function CfnLambdaFactory(resourceDefinition) {
           StackId: event.StackId,
           RequestId: event.RequestId,
           LogicalResourceId: event.LogicalResourceId,
-          Data: optionalData || OldParams
+          Data: optionalData || OldParams,
+          NoEcho: resourceDefinition.NoEcho || false
         });
       }
     }
