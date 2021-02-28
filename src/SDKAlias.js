@@ -5,24 +5,36 @@ module.exports = options => (...args) => {
     // Create
     case 2:
       console.log('Aliasing method %s as CREATE operation.', options.method)
-      SimpleAlias(options, null, args[0], args[1])
-      break
+      return SimpleAlias({
+        options,
+        physicalId: null,
+        params: args[0],
+        reply: args[1]
+      })
     // Delete
     case 3:
       console.log('Aliasing method %s as DELETE or NOOPUPDATE operation.', options.method)
-      SimpleAlias(options, args[0], args[1], args[2])
-      break
+      return SimpleAlias({
+        options,
+        physicalId: args[0],
+        params: args[1],
+        reply: args[2]
+      })
     // Update
     case 4:
       console.log('Aliasing method %s as UPDATE operation.', options.method)
-      SimpleAlias(options, args[0], args[1], args[3])
-      break
+      return SimpleAlias({
+        options,
+        physicalId: args[0],
+        params: args[1],
+        reply: args[3]
+      })
     default:
       throw new Error('Could not determine cfn-lambda SDKAlias method signature at runtime.')
   }
 }
 
-function SimpleAlias(options, physicalId, params, reply) {
+const SimpleAlias = ({ options, physicalId, params, reply }) => {
   if (params) {
     delete params.ServiceToken;
   }
