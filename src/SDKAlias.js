@@ -58,28 +58,34 @@ function attrsFrom(options, data) {
   return attrFunction(data);
 }
 
-function usableParams(params, options, physicalId) {
+const chain = (...functors) => starting => functors.reduce((functor, current) => functor(current), starting)
+const withPhysicalId = ({ physicalId, physicalIdAs }) => params => isString(physicalIdAs) ? addAliasedPhysicalId(params, physicalIdAs, physicalId) : params
+const filteredParams = ({ keys }) => params => Array.isArray(keys) && keys.every(isString) ? keyFilter(keys, withPhysicalId) : withPhysicalId
+const withMappedKeys = ({ mapKeys }) => params => Object(mapKeys) === mapKeys ? useKeyMap(filteredParams, mapKeys) : filteredParams
+const maybeDowncased = ({ downcase }) => params => downcase ? downcaseKeys(withMappedKeys) : withMappedKeys
+
+function usableParams(params, { forceBools, forceNums, physicalIdAs, keys, mapKeys, downcase, method }, physicalId) {
   var paramObject = params || {};
-  if (Array.isArray(options.forceBools) && options.forceBools.every(isString)) {
-    forceBoolean(paramObject, options.forceBools);
+  if (Array.isArray(forceBools) && forceBools.every(isString)) {
+    forceBoolean(paramObject, forceBools);
   }
-  if (Array.isArray(options.forceNums) && options.forceNums.every(isString)) {
-    forceNum(paramObject, options.forceNums);
+  if (Array.isArray(forceNums) && forceNums.every(isString)) {
+    forceNum(paramObject, forceNums);
   }
-  var withPhysicalId = isString(options.physicalIdAs)
-    ? addAliasedPhysicalId(paramObject, options.physicalIdAs, physicalId)
+  var withPhysicalId = isString(physicalIdAs)
+    ? addAliasedPhysicalId(paramObject, physicalIdAs, physicalId)
     : paramObject;
-  var filteredParams = Array.isArray(options.keys) && options.keys.every(isString)
-    ? keyFilter(options.keys, withPhysicalId)
+  var filteredParams = Array.isArray(keys) && keys.every(isString)
+    ? keyFilter(keys, withPhysicalId)
     : withPhysicalId;
-  var withMappedKeys = Object(options.mapKeys) === options.mapKeys
-    ? mapKeys(filteredParams, options.mapKeys)
+  var withMappedKeys = Object(mapKeys) === mapKeys
+    ? useKeyMap(filteredParams, mapKeys)
     : filteredParams;
-  var usedParams = options.downcase
+  var usedParams = downcase
     ? downcaseKeys(withMappedKeys)
     : withMappedKeys;
   console.log('Calling aliased method %s with params: %j',
-    options.method, usedParams);
+    method, usedParams);
   return usedParams;
 }
 
@@ -147,7 +153,7 @@ const forceBoolean = (params, pathSet) => forcePaths(params, pathSet, value => (
   'true': true
 })[value])
 
-function mapKeys(params, keyMap) {
+function useKeyMap(params, keyMap) {
   return Object.keys(params).reduce(function(mapped, key) {
     mapped[keyMap[key] ? keyMap[key] : key] = params[key];
     return mapped;
