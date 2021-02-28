@@ -89,12 +89,7 @@ function addAliasedPhysicalId(params, physcialIdAlias, physicalId) {
   return clone;
 }
 
-function downcaseKeys(hash) {
-  return Object.keys(hash).reduce(function(dced, key) {
-    dced[key[0].toLowerCase() + key.slice(1, key.length)] = hash[key];
-    return dced;
-  }, {});
-}
+const downcaseKeys = hash => Object.keys(hash).reduce((dced, key) => ({ ...dced, [key[0].toLowerCase() + key.slice(1, key.length)]: hash[key] }), {})
 
 const shallowClone = hash => ({ ...hash })
 
