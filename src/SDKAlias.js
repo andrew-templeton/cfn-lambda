@@ -171,20 +171,8 @@ const accessFunction = key => {
   return getDataRecursive
 }
 
-function useKeyMap(params, keyMap) {
-  return Object.keys(params).reduce(function(mapped, key) {
-    mapped[keyMap[key] ? keyMap[key] : key] = params[key];
-    return mapped;
-  }, {});
-}
+const useKeyMap = (params, keyMap) => Object.keys(params).reduce((mapped, key) => ({ ...mapped, [keyMap[key] ? keyMap[key] : key]: params[key] }), {})
 
-function noop() {
+const noop = () => undefined
 
-}
-
-function keyFilter(includedKeySet, hash) {
-  return includedKeySet.reduce(function(fHash, key) {
-    fHash[key] = accessFunction(key)(hash);
-    return fHash;
-  }, {});
-}
+const keyFilter = (includedKeySet, hash) => includedKeySet.reduce((fHash, key) => ({ ...fHash, [key]: accessFunction(key)(hash) }), {})
