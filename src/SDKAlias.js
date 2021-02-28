@@ -1,10 +1,11 @@
 
 module.exports = options => (...args) => {
   console.log('Using cfn-lambda SDKAlias to define an operation')
+  const { method } = options
   switch (args.length) {
     // Create
     case 2:
-      console.log('Aliasing method %s as CREATE operation.', options.method)
+      console.log('Aliasing method %s as CREATE operation.', method)
       return SimpleAlias({
         options,
         physicalId: null,
@@ -13,7 +14,7 @@ module.exports = options => (...args) => {
       })
     // Delete
     case 3:
-      console.log('Aliasing method %s as DELETE or NOOPUPDATE operation.', options.method)
+      console.log('Aliasing method %s as DELETE or NOOPUPDATE operation.', method)
       return SimpleAlias({
         options,
         physicalId: args[0],
@@ -22,7 +23,7 @@ module.exports = options => (...args) => {
       })
     // Update
     case 4:
-      console.log('Aliasing method %s as UPDATE operation.', options.method)
+      console.log('Aliasing method %s as UPDATE operation.', method)
       return SimpleAlias({
         options,
         physicalId: args[0],
@@ -34,37 +35,40 @@ module.exports = options => (...args) => {
   }
 }
 
-const SimpleAlias = ({ options, physicalId, params, reply }) => {
-  if (params) {
-    delete params.ServiceToken;
-  }
+const SimpleAlias = ({
+  options,
+  options: {
+    returnPhysicalId,
+    api,
+    method,
+    ignoreErrorCodes
+  },
+  physicalId,
+  params: { ServiceToken, ...params }={},
+  reply
+}) => {
   var usedParams = usableParams({ params, options, physicalId })
-  var physicalIdFunction = 'function' === typeof options.returnPhysicalId
-    ? options.returnPhysicalId
-    : 'string' === typeof options.returnPhysicalId
-      ? accessFunction(options.returnPhysicalId)
+  var physicalIdFunction = 'function' === typeof returnPhysicalId
+    ? returnPhysicalId
+    : 'string' === typeof returnPhysicalId
+      ? accessFunction(returnPhysicalId)
       : noop;
-  options.api[options.method](usedParams, function(err, data) {
-    if (!err || isIgnorable(options.ignoreErrorCodes, err)) {
+  api[method](usedParams, function(err, data) {
+    if (!err || isIgnorable(ignoreErrorCodes, err)) {
       console.log('Aliased method succeeded: %j', data);
       return reply(null, physicalIdFunction(data, params),
-        attrsFrom(options, data));
+        attrsFrom({ options, data }));
     }
     console.log('Aliased method had error: %j', err);
     reply(err.message);
   });
 }
 
-function attrsFrom(options, data) {
-  var attrFunction = Array.isArray(options.returnAttrs) && options.returnAttrs.every(isString)
-    ? keyFilter.bind(null, options.returnAttrs)
-    : (
-        'function' === typeof options.returnAttrs
-          ? options.returnAttrs
-          : noop
-      );
-  return attrFunction(data);
-}
+const attrsFrom = ({ options: { returnAttrs }, data }) => ((Array.isArray(returnAttrs) && returnAttrs.every(isString)
+  ? keyFilter.bind(null, returnAttrs)
+  : 'function' === typeof returnAttrs
+    ? returnAttrs
+    : noop)(data))
 
 
 const forcePaths = (params, pathSet, translator) => {
