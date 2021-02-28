@@ -146,7 +146,7 @@ const isIgnorable = (ignorableErrorCodes, errObject) => Array.isArray(ignorableE
 
 
 const accessFunction = key => {
-  var actualKey = key
+  let actualKey = key
   const getDataSimple = data => data == null ? undefined : data[actualKey]
   const getDataRecursive = data => {
     if (actualKey.includes('.')) {
