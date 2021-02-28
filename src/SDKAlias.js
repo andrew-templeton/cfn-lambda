@@ -96,21 +96,11 @@ function downcaseKeys(hash) {
   }, {});
 }
 
-function shallowClone(hash) {
-  return Object.keys(hash).reduce(function(clone, key) {
-    clone[key] = hash[key];
-    return clone;
-  }, {});
-}
+const shallowClone = hash => ({ ...hash })
 
-function isString(obj) {
-  return 'string' === typeof obj;
-}
+const isString = obj => 'string' === typeof obj
 
-function isIgnorable(ignorableErrorCodes, errObject) {
-  return Array.isArray(ignorableErrorCodes) &&
-    !!~ignorableErrorCodes.indexOf(errObject.statusCode);
-}
+const isIgnorable = (ignorableErrorCodes, errObject) => Array.isArray(ignorableErrorCodes) && !!~ignorableErrorCodes.indexOf(errObject.statusCode)
 
 
 const accessFunction = key => {
