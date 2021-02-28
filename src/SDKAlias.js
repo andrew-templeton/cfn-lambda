@@ -137,37 +137,29 @@ function accessFunction(key) {
   return getDataRecursive;
 }
 
-function forcePaths(params, pathSet, translator) {
-  pathSet.forEach(function(path) {
-    var pathTokens = path.split('.');
-    var lastToken = pathTokens.pop();
-    var intermediate = pathTokens.reduce(function(obj, key, index) {
-      if ('*' === key) {
-        return forcePaths(obj, Object.keys(obj).map(indexOrElement => {
-          return [indexOrElement].concat(pathTokens.slice(index + 1)).concat(lastToken).join('.')
-        }), translator)
-      }
-      return obj == null
-        ? undefined
-        : obj[key];
-    }, params);
-    if (intermediate) {
-      if (lastToken === '*') {
-        if (Array.isArray(intermediate)) {
-          intermediate.forEach(function(value, index) {
-            intermediate[index] = translator(value);
-          });
-        } else {
-          Object.keys(intermediate).forEach(function(key) {
-            intermediate[key] = translator(intermediate[key]);
-          });
-        }
-      } else if (intermediate[lastToken] !== undefined) {
-        intermediate[lastToken] = translator(intermediate[lastToken]);
-      }
+const forcePaths = (params, pathSet, translator) => pathSet.forEach(path => {
+  const pathTokens = path.split('.')
+  const lastToken = pathTokens.pop()
+  const intermediate = pathTokens.reduce((obj, key, index) => {
+    if ('*' === key) {
+      return forcePaths(obj, Object.keys(obj).map(indexOrElement => [indexOrElement].concat(pathTokens.slice(index + 1)).concat(lastToken).join('.')), translator)
     }
-  });
-}
+    return obj == null
+      ? undefined
+      : obj[key]
+  }, params)
+  if (intermediate) {
+    if (lastToken === '*') {
+      if (Array.isArray(intermediate)) {
+        intermediate.forEach((value, index) => intermediate[index] = translator(value))
+      } else {
+        Object.keys(intermediate).forEach(key => intermediate[key] = translator(intermediate[key]))
+      }
+    } else if (intermediate[lastToken] !== undefined) {
+      intermediate[lastToken] = translator(intermediate[lastToken])
+    }
+  }
+})
 
 const forceNum = (params, pathSet) => forcePaths(params, pathSet, value => +value)
 
