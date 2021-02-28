@@ -1,29 +1,26 @@
 
-module.exports = function(options) {
-  return (...args) => {
-    console.log('Using cfn-lambda SDKAlias to define an operation');
-    switch (args.length) {
-      // Create
-      case 2:
-        console.log('Aliasing method %s as CREATE operation.', options.method);
-        SimpleAlias(options, null, args[0], args[1]);
-        break;
-      // Delete
-      case 3:
-        console.log('Aliasing method %s as DELETE or NOOPUPDATE operation.', options.method);
-        SimpleAlias(options, args[0], args[1], args[2]);
-        break;
-      // Update
-      case 4:
-        console.log('Aliasing method %s as UPDATE operation.', options.method);
-        SimpleAlias(options, args[0], args[1], args[3]);
-        break;
-      default:
-        throw new Error('Could not determine cfn-lambda ' +
-          'SDKAlias method signature at runtime.');
-    }
-  };
-};
+module.exports = options => (...args) => {
+  console.log('Using cfn-lambda SDKAlias to define an operation')
+  switch (args.length) {
+    // Create
+    case 2:
+      console.log('Aliasing method %s as CREATE operation.', options.method)
+      SimpleAlias(options, null, args[0], args[1])
+      break
+    // Delete
+    case 3:
+      console.log('Aliasing method %s as DELETE or NOOPUPDATE operation.', options.method)
+      SimpleAlias(options, args[0], args[1], args[2])
+      break
+    // Update
+    case 4:
+      console.log('Aliasing method %s as UPDATE operation.', options.method)
+      SimpleAlias(options, args[0], args[1], args[3])
+      break
+    default:
+      throw new Error('Could not determine cfn-lambda SDKAlias method signature at runtime.')
+  }
+}
 
 function SimpleAlias(options, physicalId, params, reply) {
   if (params) {
