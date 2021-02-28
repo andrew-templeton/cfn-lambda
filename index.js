@@ -34,7 +34,7 @@ const getEnvironment = ({ invokedFunctionArn }) => {
     LambdaName
   }
 }
-f
+
 function CfnLambdaFactory(resourceDefinition) {
 
   return function CfnLambda(event, context) {

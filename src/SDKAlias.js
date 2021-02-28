@@ -169,26 +169,17 @@ function forcePaths(params, pathSet, translator) {
   });
 }
 
-function forceNum(params, pathSet) {
-  forcePaths(params, pathSet, function(value) {
-    return +value;
-  });
-}
+const forceNum = (params, pathSet) => forcePaths(params, pathSet, value => +value)
 
-function forceBoolean(params, pathSet) {
-  var translations = {
-    '0': false,
-    'false': false,
-    '': false,
-    'null': false,
-    'undefined': false,
-    '1': true,
-    'true': true
-  };
-  forcePaths(params, pathSet, function(value) {
-    return translations[value];
-  });
-}
+const forceBoolean = (params, pathSet) => forcePaths(params, pathSet, value => ({
+  '0': false,
+  'false': false,
+  '': false,
+  'null': false,
+  'undefined': false,
+  '1': true,
+  'true': true
+})[value])
 
 function mapKeys(params, keyMap) {
   return Object.keys(params).reduce(function(mapped, key) {
