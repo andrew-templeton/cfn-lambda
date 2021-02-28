@@ -83,15 +83,9 @@ function usableParams(params, options, physicalId) {
   return usedParams;
 }
 
-function addAliasedPhysicalId(params, physcialIdAlias, physicalId) {
-  var clone = shallowClone(params);
-  clone[physcialIdAlias] = physicalId;
-  return clone;
-}
+const addAliasedPhysicalId = (params, physcialIdAlias, physicalId) => ({ ...params, [physcialIdAlias]: physicalId })
 
 const downcaseKeys = hash => Object.keys(hash).reduce((dced, key) => ({ ...dced, [key[0].toLowerCase() + key.slice(1, key.length)]: hash[key] }), {})
-
-const shallowClone = hash => ({ ...hash })
 
 const isString = obj => 'string' === typeof obj
 
