@@ -1,9 +1,12 @@
 
 
+const notObject = obj => Object(obj) !== obj
+const oneKey = obj => Object.keys(obj).length === 1
+
 const DefaultExpander = tree => {
   var expanded = {}
   var defaults
-  if (Object(tree) !== tree) {
+  if (notObject(tree)) {
     return tree
   }
   if (Array.isArray(tree)) {
@@ -11,14 +14,14 @@ const DefaultExpander = tree => {
   }
   if (tree.__default__) {
     defaults = DefaultExpander(JSONExpand(tree.__default__))
-    if (Object(defaults) !== defaults) {
-      if (Object.keys(tree).length === 1) {
+    if (notObject(defaults)) {
+      if (oneKey(tree)) {
         // The only property was defaults and it had non-Object value
         // So it's a string
         return defaults
       }
     } else if (Array.isArray(defaults)) {
-      if (Object.keys(tree).length === 1) {
+      if (oneKey(tree)) {
         // The only property was defaults and it had non-Object value
         // So it's a string
         return defaults.map(DefaultExpander)
@@ -36,8 +39,6 @@ const DefaultExpander = tree => {
   return expanded
 }
 
-function JSONExpand(string) {
-  return JSON.parse(new Buffer(string, 'base64').toString('utf8'))
-}
+const JSONExpand = string => JSON.parse(new Buffer(string, 'base64').toString('utf8'))
 
 module.exports = val =>DefaultExpander(JSON.parse(JSON.stringify(val)))
