@@ -7,14 +7,10 @@ var JSONDeepEquals = require('./src/JSONDeepEquals')
 var DefaultExpander = require('./src/DefaultExpander')
 var Composite = require('./src/Composite')
 
-CfnLambdaFactory.SDKAlias = SDKAlias
-CfnLambdaFactory.ValidationCheck = ValidationCheck
-CfnLambdaFactory.JSONDeepEquals = JSONDeepEquals
-CfnLambdaFactory.PluckedEquality = PluckedEquality
-CfnLambdaFactory.DefaultExpander = DefaultExpander
-CfnLambdaFactory.Composite = Composite
-CfnLambdaFactory.Module = Composite.Module
-module.exports = CfnLambdaFactory
+
+const PluckedEquality = (keySet, fresh, old) => JSONDeepEquals(pluck(keySet, fresh), pluck(keySet, old))
+
+const pluck = (keySet, hash) => keySet.reduce((plucked, key) => ({ ...plucked, [key]: hash[key] }), {})
 
 function ReplyAfterHandler(promise, reply) {
   promise.then(function(response) {
@@ -336,16 +332,17 @@ function CfnLambdaFactory(resourceDefinition) {
   }
 }
 
-function PluckedEquality(keySet, fresh, old) {
-  return JSONDeepEquals(pluck(keySet, fresh), pluck(keySet, old))
-}
 
-function pluck(keySet, hash) {
-  return keySet.reduce(function(plucked, key) {
-    plucked[key] = hash[key]
-    return plucked
-  }, {})
-}
+CfnLambdaFactory.SDKAlias = SDKAlias
+CfnLambdaFactory.ValidationCheck = ValidationCheck
+CfnLambdaFactory.JSONDeepEquals = JSONDeepEquals
+CfnLambdaFactory.PluckedEquality = PluckedEquality
+CfnLambdaFactory.DefaultExpander = DefaultExpander
+CfnLambdaFactory.Composite = Composite
+CfnLambdaFactory.Module = Composite.Module
+module.exports = CfnLambdaFactory
+
+
 
 
 
