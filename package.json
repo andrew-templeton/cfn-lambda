@@ -28,12 +28,12 @@
   },
   "homepage": "https://github.com/andrew-templeton/cfn-lambda#readme",
   "dependencies": {
-    "archiver": "^3.0.0",
+    "archiver": "^3.1.1",
     "async": "^1.5.2",
-    "aws-sdk": "^2.417.0",
-    "jsonschema": "^1.2.4",
+    "aws-sdk": "^2.853.0",
+    "jsonschema": "^1.4.0",
     "nano-argv": "^1.0.2",
-    "underscore": "^1.8.3"
+    "underscore": "^1.12.0"
   },
   "devDependencies": {
     "istanbul": "^0.4.0",
