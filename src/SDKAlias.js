@@ -119,29 +119,22 @@ const maybeAliasPhysicalId = ({ physicalId, physicalIdAs }) => params => isStrin
 const filterToKeys = ({ keys }) => params => Array.isArray(keys) && keys.every(isString) ? keyFilter(keys, params) : params
 const mapWithKeys = ({ mapKeys }) => params => Object(mapKeys) === mapKeys ? useKeyMap(params, mapKeys) : params
 const maybeDowncase = ({ downcase }) => params => downcase ? downcaseKeys(params) : params
-
+const logWithMethod = ({ method }) => params => (console.log('Calling aliased method %s with params: %j', method, params) || params)
 
 const usableParams = ({
   params,
   options: { forceBools, forceNums, physicalIdAs, keys, mapKeys, downcase, method },
   physicalId
-}) => {
-  console.log(params)
-  const paramProcessor = chain([
-    defaultToObject,
-    forceBoolsWithin({ forceBools }),
-    forceNumsWithin({ forceNums }),
-    maybeAliasPhysicalId({ physicalId, physicalIdAs }),
-    filterToKeys({ keys }),
-    mapWithKeys({ mapKeys }),
-    maybeDowncase({ downcase })
-  ])
-
-  const usedParams = paramProcessor(params)
-  console.log('Calling aliased method %s with params: %j',
-    method, usedParams);
-  return usedParams;
-}
+}) => chain([
+  defaultToObject,
+  forceBoolsWithin({ forceBools }),
+  forceNumsWithin({ forceNums }),
+  maybeAliasPhysicalId({ physicalId, physicalIdAs }),
+  filterToKeys({ keys }),
+  mapWithKeys({ mapKeys }),
+  maybeDowncase({ downcase }),
+  logWithMethod({ method })
+])(params)
 
 const addAliasedPhysicalId = (params, physcialIdAlias, physicalId) => ({ ...params, [physcialIdAlias]: physicalId })
 
@@ -155,7 +148,6 @@ const isIgnorable = (ignorableErrorCodes, errObject) => Array.isArray(ignorableE
 const accessFunction = key => {
   var actualKey = key
   const getDataSimple = data => data == null ? undefined : data[actualKey]
-
   const getDataRecursive = data => {
     if (actualKey.includes('.')) {
       const pathTokens = actualKey.split('.')
@@ -167,7 +159,6 @@ const accessFunction = key => {
     }
     return getDataSimple(data)
   }
-
   return getDataRecursive
 }
 
