@@ -1,23 +1,22 @@
 
 module.exports = function(options) {
-  return function() {
+  return (...args) => {
     console.log('Using cfn-lambda SDKAlias to define an operation');
-    var argLength = arguments.length;
-    switch (argLength) {
+    switch (args.length) {
       // Create
       case 2:
         console.log('Aliasing method %s as CREATE operation.', options.method);
-        SimpleAlias(options, null, arguments[0], arguments[1]);
+        SimpleAlias(options, null, args[0], args[1]);
         break;
       // Delete
       case 3:
         console.log('Aliasing method %s as DELETE or NOOPUPDATE operation.', options.method);
-        SimpleAlias(options, arguments[0], arguments[1], arguments[2]);
+        SimpleAlias(options, args[0], args[1], args[2]);
         break;
       // Update
       case 4:
         console.log('Aliasing method %s as UPDATE operation.', options.method);
-        SimpleAlias(options, arguments[0], arguments[1], arguments[3]);
+        SimpleAlias(options, args[0], args[1], args[3]);
         break;
       default:
         throw new Error('Could not determine cfn-lambda ' +
@@ -30,7 +29,7 @@ function SimpleAlias(options, physicalId, params, reply) {
   if (params) {
     delete params.ServiceToken;
   }
-  var usedParams = usableParams(params, options, physicalId);
+  var usedParams = usableParams({ params, options, physicalId })
   var physicalIdFunction = 'function' === typeof options.returnPhysicalId
     ? options.returnPhysicalId
     : 'string' === typeof options.returnPhysicalId
@@ -58,32 +57,74 @@ function attrsFrom(options, data) {
   return attrFunction(data);
 }
 
-const chain = (...functors) => starting => functors.reduce((functor, current) => functor(current), starting)
-const withPhysicalId = ({ physicalId, physicalIdAs }) => params => isString(physicalIdAs) ? addAliasedPhysicalId(params, physicalIdAs, physicalId) : params
-const filteredParams = ({ keys }) => params => Array.isArray(keys) && keys.every(isString) ? keyFilter(keys, withPhysicalId) : withPhysicalId
-const withMappedKeys = ({ mapKeys }) => params => Object(mapKeys) === mapKeys ? useKeyMap(filteredParams, mapKeys) : filteredParams
-const maybeDowncased = ({ downcase }) => params => downcase ? downcaseKeys(withMappedKeys) : withMappedKeys
 
-function usableParams(params, { forceBools, forceNums, physicalIdAs, keys, mapKeys, downcase, method }, physicalId) {
-  var paramObject = params || {};
-  if (Array.isArray(forceBools) && forceBools.every(isString)) {
-    forceBoolean(paramObject, forceBools);
-  }
-  if (Array.isArray(forceNums) && forceNums.every(isString)) {
-    forceNum(paramObject, forceNums);
-  }
-  var withPhysicalId = isString(physicalIdAs)
-    ? addAliasedPhysicalId(paramObject, physicalIdAs, physicalId)
-    : paramObject;
-  var filteredParams = Array.isArray(keys) && keys.every(isString)
-    ? keyFilter(keys, withPhysicalId)
-    : withPhysicalId;
-  var withMappedKeys = Object(mapKeys) === mapKeys
-    ? useKeyMap(filteredParams, mapKeys)
-    : filteredParams;
-  var usedParams = downcase
-    ? downcaseKeys(withMappedKeys)
-    : withMappedKeys;
+const forcePaths = (params, pathSet, translator) => {
+  pathSet.forEach(path => {
+    const pathTokens = path.split('.')
+    const lastToken = pathTokens.pop()
+    const intermediate = pathTokens.reduce((obj, key, index) => {
+      if ('*' === key) {
+        return forcePaths(obj, Object.keys(obj).map(indexOrElement => [indexOrElement].concat(pathTokens.slice(index + 1)).concat(lastToken).join('.')), translator)
+      }
+      return obj == null
+        ? undefined
+        : obj[key]
+    }, params)
+    if (intermediate) {
+      if (lastToken === '*') {
+        if (Array.isArray(intermediate)) {
+          intermediate.forEach((value, index) => intermediate[index] = translator(value))
+        } else {
+          Object.keys(intermediate).forEach(key => intermediate[key] = translator(intermediate[key]))
+        }
+      } else if (intermediate[lastToken] !== undefined) {
+        intermediate[lastToken] = translator(intermediate[lastToken])
+      }
+    }
+  })
+  return params
+}
+
+const forceNum = (params, pathSet) => forcePaths(params, pathSet, value => +value)
+
+const forceBoolean = (params, pathSet) => forcePaths(params, pathSet, value => ({
+  '0': false,
+  'false': false,
+  '': false,
+  'null': false,
+  'undefined': false,
+  '1': true,
+  'true': true
+})[value])
+
+
+const chain = functors => starting => functors.reduce((current, functor) => functor(current), starting)
+const defaultToObject = params => params || {}
+const forceBoolsWithin = ({ forceBools }) => params => Array.isArray(forceBools) && forceBools.every(isString) ? forceBoolean(params, forceBools) : params
+const forceNumsWithin = ({ forceNums }) => params => Array.isArray(forceNums) && forceNums.every(isString) ? forceNum(params, forceNums) : params
+const maybeAliasPhysicalId = ({ physicalId, physicalIdAs }) => params => isString(physicalIdAs) ? addAliasedPhysicalId(params, physicalIdAs, physicalId) : params
+const filterToKeys = ({ keys }) => params => Array.isArray(keys) && keys.every(isString) ? keyFilter(keys, params) : params
+const mapWithKeys = ({ mapKeys }) => params => Object(mapKeys) === mapKeys ? useKeyMap(params, mapKeys) : params
+const maybeDowncase = ({ downcase }) => params => downcase ? downcaseKeys(params) : params
+
+
+const usableParams = ({
+  params,
+  options: { forceBools, forceNums, physicalIdAs, keys, mapKeys, downcase, method },
+  physicalId
+}) => {
+  console.log(params)
+  const paramProcessor = chain([
+    defaultToObject,
+    forceBoolsWithin({ forceBools }),
+    forceNumsWithin({ forceNums }),
+    maybeAliasPhysicalId({ physicalId, physicalIdAs }),
+    filterToKeys({ keys }),
+    mapWithKeys({ mapKeys }),
+    maybeDowncase({ downcase })
+  ])
+
+  const usedParams = paramProcessor(params)
   console.log('Calling aliased method %s with params: %j',
     method, usedParams);
   return usedParams;
@@ -116,42 +157,6 @@ const accessFunction = key => {
 
   return getDataRecursive
 }
-
-const forcePaths = (params, pathSet, translator) => pathSet.forEach(path => {
-  const pathTokens = path.split('.')
-  const lastToken = pathTokens.pop()
-  const intermediate = pathTokens.reduce((obj, key, index) => {
-    if ('*' === key) {
-      return forcePaths(obj, Object.keys(obj).map(indexOrElement => [indexOrElement].concat(pathTokens.slice(index + 1)).concat(lastToken).join('.')), translator)
-    }
-    return obj == null
-      ? undefined
-      : obj[key]
-  }, params)
-  if (intermediate) {
-    if (lastToken === '*') {
-      if (Array.isArray(intermediate)) {
-        intermediate.forEach((value, index) => intermediate[index] = translator(value))
-      } else {
-        Object.keys(intermediate).forEach(key => intermediate[key] = translator(intermediate[key]))
-      }
-    } else if (intermediate[lastToken] !== undefined) {
-      intermediate[lastToken] = translator(intermediate[lastToken])
-    }
-  }
-})
-
-const forceNum = (params, pathSet) => forcePaths(params, pathSet, value => +value)
-
-const forceBoolean = (params, pathSet) => forcePaths(params, pathSet, value => ({
-  '0': false,
-  'false': false,
-  '': false,
-  'null': false,
-  'undefined': false,
-  '1': true,
-  'true': true
-})[value])
 
 function useKeyMap(params, keyMap) {
   return Object.keys(params).reduce(function(mapped, key) {
