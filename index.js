@@ -25,6 +25,16 @@ function ReplyAfterHandler(promise, reply) {
   });
 };
 
+const getEnvironment = ({ invokedFunctionArn }) => {
+  const [LambdaArn, Region, AccountId, LambdaName] = invokedFunctionArn.match(/^arn:aws.*:lambda:(\w+-\w+-\d+):(\d+):function:(.*)$/)
+  return {
+    LambdaArn,
+    Region,
+    AccountId,
+    LambdaName
+  }
+}
+f
 function CfnLambdaFactory(resourceDefinition) {
 
   return function CfnLambda(event, context) {
@@ -337,14 +347,6 @@ function pluck(keySet, hash) {
   }, {});
 }
 
-function getEnvironment(context) {
-  var parsedArn = context.invokedFunctionArn.match(/^arn:aws.*:lambda:(\w+-\w+-\d+):(\d+):function:(.*)$/);
-  return {
-    LambdaArn: parsedArn[0],
-    Region: parsedArn[1],
-    AccountId: parsedArn[2],
-    LambdaName: parsedArn[3]
-  };
-}
+
 
 module.exports.deploy = require('./deploy');
