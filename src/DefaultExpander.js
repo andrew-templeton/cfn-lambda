@@ -3,9 +3,10 @@
 const notObject = obj => Object(obj) !== obj
 const oneKey = obj => Object.keys(obj).length === 1
 
+
 const DefaultExpander = tree => {
-  var expanded = {}
-  var defaults
+  const expanded = {}
+  const expandEach = obj => Object.keys(obj).forEach(key => expanded[key] = DefaultExpander(obj[key]))
   if (notObject(tree)) {
     return tree
   }
@@ -13,7 +14,7 @@ const DefaultExpander = tree => {
     return tree.map(DefaultExpander)
   }
   if (tree.__default__) {
-    defaults = DefaultExpander(JSONExpand(tree.__default__))
+    const defaults = DefaultExpander(JSONExpand(tree.__default__))
     if (notObject(defaults)) {
       if (oneKey(tree)) {
         // The only property was defaults and it had non-Object value
@@ -27,15 +28,11 @@ const DefaultExpander = tree => {
         return defaults.map(DefaultExpander)
       }
     } else {
-      Object.keys(defaults).forEach(function(defaultedKey) {
-        expanded[defaultedKey] = DefaultExpander(defaults[defaultedKey])
-      })
+      expandEach(defaults)
     }
     delete tree.__default__
   }
-  Object.keys(tree).forEach(function(key) {
-    expanded[key] = DefaultExpander(tree[key])
-  })
+  expandEach(tree)
   return expanded
 }
 
