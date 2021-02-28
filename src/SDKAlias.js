@@ -113,28 +113,23 @@ function isIgnorable(ignorableErrorCodes, errObject) {
 }
 
 
-function accessFunction(key) {
-  var actualKey = key;
-  var getDataSimple = function(data) {
-    return data == null ?
-      undefined :
-      data[actualKey];
-  };
+const accessFunction = key => {
+  var actualKey = key
+  const getDataSimple = data => data == null ? undefined : data[actualKey]
 
-  function getDataRecursive(data) {
+  const getDataRecursive = data => {
     if (actualKey.includes('.')) {
-      var pathTokens = actualKey.split('.'),
-        firstElem = pathTokens[0],
-        childData = data[firstElem],
-        childPath = pathTokens.slice(1).join('.');
-
-      actualKey = childPath;
-      return getDataRecursive(childData);
+      const pathTokens = actualKey.split('.')
+      const firstElem = pathTokens[0]
+      const childData = data[firstElem]
+      const childPath = pathTokens.slice(1).join('.')
+      actualKey = childPath
+      return getDataRecursive(childData)
     }
-    return getDataSimple(data);
-  };
+    return getDataSimple(data)
+  }
 
-  return getDataRecursive;
+  return getDataRecursive
 }
 
 const forcePaths = (params, pathSet, translator) => pathSet.forEach(path => {
