@@ -76,7 +76,7 @@ const forcePaths = (params, pathSet, translator) => {
     const pathTokens = path.split('.')
     const lastToken = pathTokens.pop()
     const intermediate = pathTokens.reduce((obj, key, index) => {
-      if ('*' === key) {
+      if ('*' === key && obj != null) {
         return forcePaths(obj, Object.keys(obj).map(indexOrElement => [indexOrElement].concat(pathTokens.slice(index + 1)).concat(lastToken).join('.')), translator)
       }
       return obj == null
