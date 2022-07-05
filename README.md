@@ -2,6 +2,8 @@
 # cfn-lambda
 
 
+** Please open a PR for any issue you open in which you suggest a patch - I do not have time to maintain this by myself anymore, and it generally works as advertised so any improvements requested are incumbent upon the requester to help implement, thanks / with love <3 **
+
 ## Purpose
 
 A simple flow for generating CloudFormation Lambda-Backed Custom Resource handlers in node.js. The scope of this module is to structure the way developers author simple Lambda-Backed resources into simple functional definitions of `Create`, `Update`, `Delete`.
