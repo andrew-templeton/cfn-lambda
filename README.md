@@ -162,7 +162,7 @@ You can manually define these properties, or use `SDKAlias` for `Create`, `Updat
 
 
 ### Resource Lambda Generation
-```
+```js
 var CfnLambda = require('cfn-lambda');
 
 
@@ -192,18 +192,19 @@ exports.handler = CfnLambda({
 
 Provides convenience `Environment` values.:
 
-    var CfnLambda = require('cfn-lambda');
-    // After receiving `event` and `context`...
-    console.log(CfnLambda.Environment);
-    /*
-    {
-      `LambdaArn`: 'foo bar',      // Full ARN for the current Lambda
-      `Region`: 'us-east-1',       // Region in which current Lambda resides
-      `AccountId`: '012345678910', // The account associated with the Lambda
-      `LambdaName`: 'LambdaName'   // Name for the current Lambda
-    }
-    */
-
+```js
+var CfnLambda = require('cfn-lambda');
+// After receiving `event` and `context`...
+console.log(CfnLambda.Environment);
+/*
+{
+  `LambdaArn`: 'foo bar',      // Full ARN for the current Lambda
+  `Region`: 'us-east-1',       // Region in which current Lambda resides
+  `AccountId`: '012345678910', // The account associated with the Lambda
+  `LambdaName`: 'LambdaName'   // Name for the current Lambda
+}
+*/
+```
 
 *Only works after the generated `CfnLambda` function has been called by Lambda.*
 
@@ -213,7 +214,7 @@ Provides convenience `Environment` values.:
 Called when CloudFormation issues a `'CREATE'` command.  
 Accepts the `CfnRequestParams` Properties object, and the `reply` callback.
 
-```
+```js
 function Create(CfnRequestParams, reply) {
   // code...
   if (err) {
@@ -232,7 +233,7 @@ function Create(CfnRequestParams, reply) {
 Called when CloudFormation issues an `'UPDATE'` command.  
 Accepts the `RequestPhysicalId` `String`, `CfnRequestParams` Properties object, the `OldCfnRequestParams` Properties object, and the `reply` callback.
 
-```
+```js
 function Update(RequestPhysicalID, CfnRequestParams, OldCfnRequestParams, reply) {
   // code...
   if (err) {
@@ -252,7 +253,7 @@ function Update(RequestPhysicalID, CfnRequestParams, OldCfnRequestParams, reply)
 Called when CloudFormation issues a `'DELETE'` command.  
 Accepts the `RequestPhysicalId` `String`, `CfnRequestParams` Properties object, and the `reply` callback.
 
-```
+```js
 function Delete(RequestPhysicalID, CfnRequestParams, reply) {
   // code...
   if (err) {
@@ -282,7 +283,7 @@ NoUpdate -> AsyncNoUpdate
 
 This difference with the async counterparts is that there is no reply() callback. Instead, your function should return a Promise (or be marked `async`) which resolves with an object containing the `PhysicalResourceId` and `FnGetAttrsDataObj` outputs. See below example:
 
-```
+```js
 const wait = () => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -320,7 +321,7 @@ May be a:
 
 The truthy `String` return value will cause a `'FAILURE'`, and the `String` value is used as the CloudFormation `'REASON'`.
 
-```
+```js
 // Example using a custom function
 // CfnRequestParams are all resource `Properties`,
 //   except for the required system `ServiceToken`.
@@ -343,7 +344,7 @@ Using a JSONSchema `Schema` property value will automatically generate the `Stri
 
 If you choose to use a JSONSchema template, the service will also use the JSONSchema metaschema to ensure the provided JSONSchema is a valid schema itself.
 
-```
+```js
 // Example using a custom JSONSchema Version 4 template
 // This might be in a file you manually load like `schema.json`, or a JS object.
 var Schema = {
@@ -370,7 +371,7 @@ A convenient way to get the benefits of `Schema` object validation, but keeping 
 
 The path is defined as an Array so that we can use the `path` module.
 
-```
+```js
 var SchemaPath = [__dirname, 'src', 'mytemplate.json'];
 ```
 
@@ -381,7 +382,7 @@ Optional. Triggered by deep JSON object equality of the old and new parameters, 
 
 Even when short-circuiting an `Update` is a good idea, a resource provider may still need to return a set of properties for use with `Fn::GetAtt` in CloudFormation templates. This `NoUpdate` handler triggers in the special case where no settings on the resource change, allowing the developer to simultaneously skip manipulation logic while doing read operations on resources to generate the attribute sets `Fn::GetAtt` will need.
 
-```
+```js
 // Using a custom NoUpdate for READ to supply properties
 //   for Fn::GetAtt to access in CloudFormation templates
 function NoUpdate(PhysicalResourceId, CfnResourceProperties, reply) {
@@ -447,7 +448,7 @@ All three `LongRunning.Methods` receive a special object as their first paramete
 
 Will be called during Lambda pingspawn cycles. Here, `CheckCreate` is an example of a check function definition for `LongRunning.Methods.Create`.
 
-```
+```js
 function CheckCreate(LongRunningContext, params, reply, notDone) {
   // LongRunningContext is object type specified above
   // params are Properties straight from CloudFomation
@@ -462,7 +463,7 @@ function CheckCreate(LongRunningContext, params, reply, notDone) {
 
 Will be called during Lambda pingspawn cycles. Here, `CheckUpdate` is an example of a check function definition for `LongRunning.Methods.Update`.
 
-```
+```js
 function CheckUpdate(LongRunningContext, physcialId, params, oldParams, reply, notDone) {
   // LongRunningContext is object type specified above
   // physicalId is PhysicalResourceId from pre-Update resource state
@@ -480,7 +481,7 @@ function CheckUpdate(LongRunningContext, physcialId, params, oldParams, reply, n
 
 Will be called during Lambda pingspawn cycles. Here, `CheckDelete` is an example of a check function definition for `LongRunning.Methods.Delete`.
 
-```
+```js
 function CheckDelete(LongRunningContext, physcialId, params, reply, notDone) {
   // LongRunningContext is object type specified above
   // physicalId is PhysicalResourceId from pre-Delete resource state
@@ -498,7 +499,7 @@ function CheckDelete(LongRunningContext, physcialId, params, reply, notDone) {
 
 Optional. Tells `cfn-lambda` to divert the `'Update'` call from CloudFormation to the `Create` handler the developer assigns to the Lambda. This technique results in the most seamless resource replacement possible, by causing the new resource to be created before the old one is deleted. This `Delete` cleanup process occurs in the `UPDATE_COMPLETE_CLEANUP_IN_PROGRESS` phase after all new resources are created. This property facilitates triggering that said phase.
 
-```
+```js
 exports.handler = CfnLambda({
   // other properties
   TriggersReplacement: ['Foo', 'Bar'],
@@ -516,7 +517,7 @@ Structures and accelerates development of resources supported by the `aws-sdk` (
 Will automatically correctly ignore `ServiceToken` from CloudFormation Properties. All settings are optional, except `api` and `method`.
 
 ##### Usage Reference
-```
+```js
 var AWS = require('aws-sdk');
 var AnAWSApi = new AWS.SomeNamespace();
 var CfnLambda = require('cfn-lambda');
@@ -571,7 +572,7 @@ Any module using `cfn-lambda` supports `__default__` property expansion. `__defa
 The best example of this is the `cfn-variable` module's `example.template.json`, wherein a very large `RestApi` is created with over a large repeated subtree of `Resource` objects. `cfn-variable` is a custom resource that takes any value and serializes it using `toBase64(JSON.stringify(anyValue))`, making it a perfect fit for this behavior.
 
 In the example in `cfn-variable`, this technique is used to create 120 `Resource` objects in under 15 seconds (this example uses less):
-```
+```json
 // This is cfn-variable storing the serialized object:
 "MySubtreeVariable": {
   "Type": "Custom::Variable",
